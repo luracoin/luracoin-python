@@ -1,18 +1,18 @@
 import sys, os, shutil
+import unittest
 myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../')
 
-from luracoin.wallet import address_to_pubkey
+from luracoin.wallet import address_to_pubkey, bytes_to_signing_key
 from luracoin.config import Config
-import unittest
+
 
 class BlocksTest(unittest.TestCase):
-    
-    def setUp(self):
-        pass
 
-    def tearDown(self):
-        pass
+    def test_bytes_to_signing_key(self):
+        sig_key = bytes_to_signing_key(
+            b'\xb1\x80E\xceRo\xfeG[\x89\xe2\xc1+\xfd\xf9\xc4\x80w\x91\x836o~\xbe\x87\x82bb\xab@\xf9N')
+        self.assertEqual(sig_key.to_string().hex(), 'b18045ce526ffe475b89e2c12bfdf9c480779183366f7ebe87826262ab40f94e')
 
     def test_address_to_pubkey(self):
         pub_key = address_to_pubkey("1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS")

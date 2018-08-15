@@ -7,6 +7,7 @@ Usage:
   client.py getBlock <block_hash>
   client.py sendTransaction
   client.py getWallet
+  client.py generateKeys
   client.py getBlockchainInfo
   client.py getMempool
   client.py getChainstate
@@ -28,14 +29,17 @@ import binascii
 import pprint
 import shutil
 import plyvel
-from .transactions import TxOut, TxIn, UnspentTxOut, Transaction, OutPoint, deserialize_transaction, build_p2pkh, search_utxo, utxo_valid, utxo_value
+from .transactions import build_p2pkh, search_utxo, utxo_valid, utxo_value
 from docopt import docopt
 from random import randint
 from .config import Config
-from .blocks import Block, serialize_block, deserialize_block, find_block_in_file, add_block_to_chain, recieve_block
+from .serialize import deserialize_block, deserialize_transaction
+from .search import find_block_in_file
+from .blocks import serialize_block, add_block_to_chain, recieve_block
+from .blockchain import Block, TxOut, TxIn, UnspentTxOut, Transaction, OutPoint
 from .network import ThreadedTCPServer, TCPHandler, GetMempoolMsg, encode_socket_data, read_all_from_socket
 from .helpers import get_blk_file_size
-from .wallet import get_wallet, address_to_pubkey
+from .wallet import get_wallet, address_to_pubkey, generate_new_keys
 from .pow import proof_of_work, valid_proof
 import threading
 import logging
@@ -77,6 +81,8 @@ def main(args):
         getBlockchainInfo()
     elif args['getChainstate']:
         getChainstate()
+    elif args['generateKeys']:
+        generate_keys()
 
 
 def getChainstate():
@@ -111,11 +117,21 @@ def getBlockchainInfo():
 
 
 def tx():
-   block = find_block_in_file(15786, '000000')
+   block = find_block_in_file(55, '000000')
    print(block)
    block = find_block_in_file(15787, '000000')
    print(block)
 
+
+def generate_keys():
+    address = generate_new_keys()
+    info = {
+        "address": address[2],
+        "verify": address[1].to_string().hex(),
+        "pub_key": address_to_pubkey(address[2]),
+        "private_key": address[0]
+    }
+    print(info)
 
 
 def getWallet():
@@ -258,10 +274,10 @@ def start_blockchain(args):
     Example:
     > python client.py startBlockchain 1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS
     '''
-    folder = Config.BLOCKS_DIR
+    folder = Config.DATA_DIR
     if os.path.exists(folder):
         shutil.rmtree(folder)
-    os.makedirs(folder)
+    os.makedirs(folder + "/blocks")
 
     tx_out = TxOut(value=5000000000, to_address=build_p2pkh(args['<address>']))
     tx_in = TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)

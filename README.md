@@ -65,3 +65,10 @@ python -m unittest discover -s tests -p '*_test.py' -v
 	6-byte File name in which the block data is stored.
 	32-byte block hash
 ```
+
+
+
+## TODO:
+- Tests:
+   - Hardcode three different: Public Key / Address / Private Key
+   - Inherit from BlockchainTest

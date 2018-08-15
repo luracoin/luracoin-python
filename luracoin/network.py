@@ -12,8 +12,9 @@ from functools import lru_cache, wraps
 from typing import (
     Iterable, NamedTuple, Dict, Mapping, Union, get_type_hints, Tuple,
     Callable)
-from .transactions import TxOut, TxIn, UnspentTxOut, Transaction, OutPoint, deserialize_transaction
-from .blocks import Block, serialize_block, deserialize_block
+from .blocks import serialize_block
+from .serialize import deserialize_block, deserialize_transaction
+from .blockchain import Block, TxOut, TxIn, UnspentTxOut, Transaction, OutPoint
 import ecdsa
 from base58 import b58encode_check
 from .config import Config

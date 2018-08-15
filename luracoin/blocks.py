@@ -5,64 +5,12 @@ import os
 import hashlib
 import binascii
 from .wallet import init_wallet
-from .transactions import TxOut, TxIn, UnspentTxOut, Transaction, OutPoint, deserialize_transaction, validate_tx, remove_tx_from_chainstate, add_tx_to_chainstate
+from .transactions import validate_tx, remove_tx_from_chainstate, add_tx_to_chainstate
+from .blockchain import Block, TxOut, TxIn, UnspentTxOut, Transaction, OutPoint
+from .serialize import deserialize_block
 from .pow import validate_pow
 from .helpers import var_int, get_blk_file_size, sha256d
 import plyvel
-
-
-class Block(NamedTuple):
-    # A version integer.
-    version: int
-
-    # A hash of the previous block's header.
-    prev_block_hash: str
-
-    # A UNIX timestamp of when this block was created.
-    timestamp: int
-
-    # The difficulty target; i.e. the hash of this block header must be under
-    # (2 ** 256 >> bits) to consider work proved.
-    bits: int
-
-    # The value that's incremented in an attempt to get the block header to
-    # hash to a value below `bits`.
-    nonce: int
-
-    # Transaction list
-    txns: list
-
-    def pretty_print(self):
-        print("===========\n")
-        print("Version: " + str(self.version))
-        print("Hash: " + self.id)
-        if self.prev_block_hash != 0:
-            print("Prev Hash: " + str(self.prev_block_hash))
-        else:
-            print("Prev Hash: - ")
-        print("Timestamp: " + str(self.timestamp))
-        print("Bits: " + str(self.bits))
-        print("Nonce: " + str(self.nonce))
-        print("Transactions: ")
-        for t in self.txns:
-            print("\tID: " + str(t.id))
-            print("\tCoinbase: " + str(t.is_coinbase))
-            print("\tTxouts: " + str(t.txouts))
-            print("\tTxins: " + str(t.txins))
-            print("\n")
-        print("===========\n")
-
-    @property
-    def id(self) -> str:
-        txns_ids = ''
-        for t in self.txns:
-            txns_ids = txns_ids + t.id
-
-        string_to_hash = str(self.version) + str(self.prev_block_hash) + str(
-            self.timestamp) + str(self.bits) + str(self.nonce) + str(txns_ids)
-
-        block_id = sha256d(string_to_hash)
-        return block_id
 
 
 def serialize_block(block):
@@ -150,60 +98,6 @@ def validate_transactions(block):
             valid = False
 
     return valid
-
-
-def deserialize_block(serialized_block):
-    magic = serialized_block[0:8]
-    version = serialized_block[8:16]
-    prev_hash = serialized_block[16:80]
-    block_hash = serialized_block[80:144]
-    bits = serialized_block[144:152]
-    timestamp = serialized_block[152:160]
-    nonce = serialized_block[160:172]
-
-    block = Block(
-        version=int.from_bytes(binascii.unhexlify(version), byteorder='little'),
-        prev_block_hash=prev_hash,
-        timestamp=int.from_bytes(binascii.unhexlify(timestamp), byteorder='little'),
-        bits=int.from_bytes(binascii.unhexlify(bits), byteorder='little'),
-        nonce=int.from_bytes(binascii.unhexlify(nonce), byteorder='little'),
-        txns=[]
-    )
-
-    txns = deserialize_transaction(serialized_block[172:])
-    for t in txns:
-        block.txns.append(t)
-
-    return block
-
-
-def blk_to_list(blk_number: str, raw: bool=False) -> list:
-    '''
-    Get the contents of a blk file and create a list with all blocks within.
-
-    :param blk_number: <String> Filename (eg. 026113)
-    :return: <List>
-    '''
-    try:
-        f = open(Config.BLOCKS_DIR + "blk" + blk_number + ".dat", 'r')
-        contents = f.read()
-        f.close()
-        block_list = contents.split(Config.MAGIC_BYTES)
-        block_list = [l for l in block_list if l]
-        if not raw:
-            block_list = [deserialize_block(bl) for bl in block_list]
-        return block_list
-    except FileNotFoundError:
-        return []
-
-
-def find_block_in_file(blk_height: int, blk_file: str):
-    blk_list = blk_to_list(blk_file)
-
-    for bl in blk_list:
-        if int(bl.txns[0].txins[0].unlock_sig) == int(blk_height):
-            return bl
-
 
 
 def next_blk_file(current_blk_file: str) -> str:

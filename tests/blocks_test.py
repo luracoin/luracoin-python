@@ -3,83 +3,19 @@ myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../')
 
 from luracoin.blocks import get_blk_file_size, next_blk_file, Block, serialize_block, add_block_to_chain
-from luracoin.blocks import blk_to_list, find_block_in_file, deserialize_block
-from luracoin.transactions import TxOut, TxIn, UnspentTxOut, Transaction, OutPoint, deserialize_transaction
+from luracoin.search import blk_to_list, find_block_in_file
+from luracoin.serialize import deserialize_transaction, deserialize_block
+from luracoin.blockchain import TxOut, TxIn, UnspentTxOut, Transaction, OutPoint
 from luracoin.transactions import build_message, build_p2pkh, build_script_sig
 from luracoin.config import Config
-from luracoin.wallet import get_wallet
+from luracoin.wallet import bytes_to_signing_key
+
+from tests.blockchain_test import LuracoinTest
 import unittest
 
-class BlocksTest(unittest.TestCase):
+class BlocksTest(LuracoinTest):
 
     maxDiff = None
-    
-    def setUp(self):
-        Config.DATA_DIR = Config.BASE_DIR + '/tests/data/'
-        Config.BLOCKS_DIR = Config.DATA_DIR + 'blocks/'
-
-        folder = Config.BLOCKS_DIR
-        if os.path.exists(folder):
-            shutil.rmtree(folder)
-        os.makedirs(folder)
-
-        # ================== GENESIS BLOCK ==================
-
-        tx_out = TxOut(value=5000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
-        tx_in = TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)
-
-        tx = Transaction(
-            version=1,
-            txins=[tx_in],
-            txouts=[tx_out],
-            locktime=None
-        )
-
-        genesis_block = Block(
-            version=1,
-            prev_block_hash=0,
-            timestamp=1501821412,
-            bits=24,
-            nonce=10126761,
-            txns=[tx])
-
-        serialized_block = serialize_block(genesis_block)
-
-        add_block_to_chain(serialized_block)
-
-        # Public_key
-        keys = get_wallet()
-        public_key = "79b043fbab0aa455d0fd9a38f1befcf1c7116feedd7407f42fcf4ad321e4710014740c3c370109a585debfb082d0889b99fa74708c3f41f0b3d39498cb65b3ee"
-        spend_msg = build_message(OutPoint(tx.id, 0), public_key)
-        sig = keys[0].sign(spend_msg.encode())
-
-        tx_out = TxOut(value=5000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
-        tx_in = TxIn(to_spend=OutPoint(0, -1), unlock_sig='1', sequence=0)
-        tx = Transaction(version=1, txins=[tx_in], txouts=[tx_out], locktime=None)
-
-        tx_out1 = TxOut(value=1000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
-        tx_out2 = TxOut(value=2000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
-        tx_out3 = TxOut(value=2000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
-        tx_in = TxIn(to_spend=OutPoint(tx.id, 0), unlock_sig=build_script_sig(sig.hex(), public_key), sequence=0)
-        tx1 = Transaction(version=1, txins=[tx_in], txouts=[tx_out1, tx_out2, tx_out3], locktime=None)
-
-        block1 = Block(
-            version=1,
-            prev_block_hash=genesis_block.id,
-            timestamp=1501821412,
-            bits=24,
-            nonce=10126761,
-            txns=[tx, tx1])
-
-        serialized_block = serialize_block(block1)
-
-        add_block_to_chain(serialized_block)
-
-
-    def tearDown(self):
-        folder = Config.DATA_DIR
-        if os.path.exists(folder):
-            shutil.rmtree(folder)
 
     def test_blk_to_list(self):
         self.assertEqual(len(blk_to_list('000000', True)), 2)
@@ -92,26 +28,36 @@ class BlocksTest(unittest.TestCase):
         self.assertEqual(next_blk_file('000099'), '000100')
 
     def test_find_block_in_file(self):
-        #print("Finding block")
-        #print(find_block_in_file(blk_height=1, blk_file='000000'))
-        pass
+        block = find_block_in_file(blk_height=0, blk_file='000000')
+        self.assertEqual(block.id, self.genesis_block.id)
     
     def test_serialize_block(self):
-        keys = get_wallet()
-        public_key = "79b043fbab0aa455d0fd9a38f1befcf1c7116feedd7407f42fcf4ad321e4710014740c3c370109a585debfb082d0889b99fa74708c3f41f0b3d39498cb65b3ee"
-        spend_msg = build_message(OutPoint("27b397b0657ac7410930be64e074219cdcfa88ef5e5b011027b38e6b5acda126", 0), public_key)
-        sig = keys[0].sign(spend_msg.encode())
-        script_sig = build_script_sig(sig.hex(), public_key)
+        signature = bytes_to_signing_key(self.private_key2).sign(
+            build_message(
+                OutPoint(self.tx2.id, 0),
+                self.public_key2
+            ).encode()
+        )
 
-        tx_out = TxOut(value=5000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
-        tx_in = TxIn(to_spend=OutPoint(0, -1), unlock_sig='1', sequence=0)
-        tx = Transaction(version=1, txins=[tx_in], txouts=[tx_out], locktime=None)
+        tx = Transaction(
+            version=1, locktime=0,
+            txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig='1', sequence=0)],
+            txouts=[TxOut(value=5000000000, to_address=build_p2pkh(self.address1))]
+        )
 
-        tx_out1 = TxOut(value=1000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
-        tx_out2 = TxOut(value=2000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
-        tx_out3 = TxOut(value=2000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
-        tx_in = TxIn(to_spend=OutPoint(tx.id, 0), unlock_sig=script_sig, sequence=0)
-        tx1 = Transaction(version=1, txins=[tx_in], txouts=[tx_out1, tx_out2, tx_out3], locktime=None)
+        tx1 = Transaction(
+            version=1, locktime=0,
+            txins=[
+                TxIn(
+                    to_spend=OutPoint(tx.id, 0), sequence=0,
+                    unlock_sig=build_script_sig(signature.hex(), self.public_key1))
+            ],
+            txouts=[
+                TxOut(value=1000000000, to_address=build_p2pkh(self.address2)),
+                TxOut(value=2000000000, to_address=build_p2pkh(self.address3)),
+                TxOut(value=2000000000, to_address=build_p2pkh(self.address3))
+            ]
+        )
 
         block1 = Block(
             version=1,

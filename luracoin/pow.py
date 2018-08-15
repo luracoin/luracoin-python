@@ -37,3 +37,8 @@ def valid_proof(last_proof, proof):
 
 def validate_pow(block):
     return True
+
+
+
+def mining_reward():
+    return 50
