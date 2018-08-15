@@ -2,7 +2,7 @@
 Luracoin Python implementation.
 
 ## Status
-Early development
+Early development. The blockchain is not live yet.
 
 ## TODO:
 - Transactions
@@ -11,6 +11,7 @@ Early development
 		- Max Block size
 		- Max money supply
 		- Script unlock and validate it
+- Add more tests
 - Mining
 	- Get transactions from the mempool
 	- Validate transactions and block
@@ -41,13 +42,14 @@ It's easy and fun. We don't need performance yet, we need more contributors.
 - 4MB limit instead of 1MB.  
 
 
-
 ## Testing
 ```shell
 python -m unittest discover -s tests -p '*_test.py' -v
 ```
 
-## LevelDB keys
+## LevelDB 
+
+#### Block keys:
 
 ```shell
 'l' -> Actual file number (eg. blk00045.dat)  
@@ -65,10 +67,23 @@ python -m unittest discover -s tests -p '*_test.py' -v
 	6-byte File name in which the block data is stored.
 	32-byte block hash
 ```
+  
 
+#### Chainstate keys:
 
+```
+Chainstate keys:
+'c' + 32-byte transaction id -> Outputs
+    TX Version (4 bytes).
+    Coinbase (1 byte).
+    Block height (4 bytes).
+    Num Outputs (VarInt).
+    Outputs:
+        Output Length (VarInt).
+        Output.
 
-## TODO:
-- Tests:
-   - Hardcode three different: Public Key / Address / Private Key
-   - Inherit from BlockchainTest
+```
+
+##Roadmap
+- 31 Dec 2018: Launch Testnet
+- 30 June 2019: Launch Mainnet & Create wallets and apps
