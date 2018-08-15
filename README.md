@@ -24,7 +24,11 @@ Early development. The blockchain is not live yet.
 	- Coinbase transaction
 	- Transactions inside
 	- Timestamp
+- RPC
+- Initial Block Download
 - Validate chain and resolve conflicts.
+- Peer "discovery" / DNS Seeds
+- Replace by fee.
 - Work with Bytes and Binary instead of Text.
 - Choose where to save the data and config folder.
 - Add Multisig and other Script OP_CODES.
@@ -83,6 +87,6 @@ python -m unittest discover -s tests -p '*_test.py' -v
 
 ```
 
-##Roadmap
+## Roadmap
 - 31 Dec 2018: Launch Testnet
 - 30 June 2019: Launch Mainnet & Create wallets and apps
