@@ -51,7 +51,7 @@ python -m unittest discover -s tests -p '*_test.py' -v
 
 #### Block keys:
 
-```shell
+```
 'l' -> Actual file number (eg. blk00045.dat)  
 'b' -> Current block height
 'c' -> Validation process
@@ -72,8 +72,7 @@ python -m unittest discover -s tests -p '*_test.py' -v
 #### Chainstate keys:
 
 ```
-Chainstate keys:
-'c' + 32-byte transaction id -> Outputs
+'c' + 32-byte transaction id -> Outputs. Each record stores:  
     TX Version (4 bytes).
     Coinbase (1 byte).
     Block height (4 bytes).
