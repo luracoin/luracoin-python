@@ -12,7 +12,7 @@ Usage:
   client.py getMempool
   client.py getChainstate
   client.py start
-  client.py mine 
+  client.py mine
   client.py tx
 
 Options:
@@ -22,35 +22,28 @@ Options:
   -p, --port PORT      Port node is listening on (default: 9999)
 
 """
-import logging
 import os
-import socket
 import binascii
-import pprint
 import shutil
 import plyvel
 from .transactions import build_p2pkh, search_utxo, utxo_valid, utxo_value
 from docopt import docopt
-from random import randint
 from .config import Config
-from .serialize import deserialize_block, deserialize_transaction
 from .search import find_block_in_file
-from .blocks import serialize_block, add_block_to_chain, recieve_block
-from .blockchain import Block, TxOut, TxIn, UnspentTxOut, Transaction, OutPoint
-from .network import ThreadedTCPServer, TCPHandler, GetMempoolMsg, encode_socket_data, read_all_from_socket
-from .helpers import get_blk_file_size
+from .blocks import serialize_block, recieve_block
+from .blockchain import Block, TxOut, TxIn, Transaction, OutPoint
+from .network import (
+    ThreadedTCPServer,
+    TCPHandler,
+    GetMempoolMsg,
+    encode_socket_data,
+    read_all_from_socket
+)
 from .wallet import get_wallet, address_to_pubkey, generate_new_keys
-from .pow import proof_of_work, valid_proof
+from .pow import proof_of_work
 import threading
 import logging
-import socketserver
 import socket
-import time
-from ecdsa import VerifyingKey
-from ecdsa import SigningKey
-import ecdsa
-import hashlib
-from base58 import b58encode_check
 import json
 
 
@@ -58,6 +51,19 @@ logging.basicConfig(
     level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
     format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
+
+# =========================================================
+# =========================================================
+# DELETE THIS. This is only here to prevent from failing since
+# this is a temporal file and still in WIP.
+
+send_to_peer = None
+GetBlocksMsg = None
+active_chain = None
+ibd_done = None
+
+# =========================================================
+# =========================================================
 
 
 def main(args):
@@ -117,10 +123,10 @@ def getBlockchainInfo():
 
 
 def tx():
-   block = find_block_in_file(55, '000000')
-   print(block)
-   block = find_block_in_file(15787, '000000')
-   print(block)
+    block = find_block_in_file(55, '000000')
+    print(block)
+    block = find_block_in_file(15787, '000000')
+    print(block)
 
 
 def generate_keys():
@@ -157,8 +163,8 @@ def getWallet():
         "pub_key": pub_key,
         "balance": balance / 100_000_000,
         "balance_pending": balance_pending / 100_000_000
-        #"utxo": utxo,
-        #"utxo_available": utxo_available
+        # "utxo": utxo,
+        # "utxo_available": utxo_available
     }
 
     print(json.dumps(info, indent=4))
@@ -167,7 +173,7 @@ def getWallet():
 def get_block(args):
     '''
     Example:
-    > python client.py getBlock 2fe2be6f555259c9a0c6ab989786f728ef8d1fa50c1d8d6dc20ce77fb004775d
+    > python client.py getBlock {BLOCK_HASH}
     '''
     db = plyvel.DB(Config.BLOCKS_DIR + 'index', create_if_missing=True)
     result = db.get(b'b' + args['<block_hash>'].encode())
@@ -177,7 +183,9 @@ def get_block(args):
 
 
 def start(args):
-    peer_hostnames = {p for p in os.environ.get('TC_PEERS', '').split(',') if p}
+    peer_hostnames = {
+        p for p in os.environ.get('TC_PEERS', '').split(',') if p
+    }
     PORT = os.environ.get('TC_PORT', 9999)
     workers = []
     server = ThreadedTCPServer(('0.0.0.0', PORT), TCPHandler)
@@ -199,7 +207,6 @@ def start(args):
     [w.join() for w in workers]
 
 
-
 def mine_forever():
 
     while True:
@@ -209,11 +216,21 @@ def mine_forever():
         blk_file = db.get(b'l')
         db.close()
 
-        last_block = find_block_in_file(heigth.decode('utf-8'), blk_file.decode('utf-8'))
+        last_block = find_block_in_file(
+            heigth.decode('utf-8'),
+            blk_file.decode('utf-8')
+        )
         proof = proof_of_work(last_block.id)
 
-        tx_out = TxOut(value=5000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
-        tx_in = TxIn(to_spend=OutPoint(0, -1), unlock_sig=str(int(heigth.decode()) + 1), sequence=0)
+        tx_out = TxOut(
+            value=5000000000,
+            to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS')
+        )
+        tx_in = TxIn(
+            to_spend=OutPoint(0, -1),
+            unlock_sig=str(int(heigth.decode()) + 1),
+            sequence=0
+        )
 
         tx = Transaction(
             version=1,
@@ -237,17 +254,17 @@ def mine_forever():
         recieve_block(serialized_block)
 
 
-
 def get_mempool(args):
     mempool = send_msg(GetMempoolMsg())
     print(mempool)
 
 
 def send_transaction(args):
-    tx_out = TxOut(value=5000000000, to_address="1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS")
-    tx_out2 = TxOut(value=15000000000, to_address="1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS")
+    tx_out = TxOut(
+        value=5000000000,
+        to_address="1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS"
+    )
     tx_in = TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)
-    tx_in2 = TxIn(to_spend=OutPoint(0, -1), unlock_sig='1', sequence=0)
 
     tx = Transaction(
         version=1,
@@ -302,7 +319,6 @@ def start_blockchain(args):
     serialized_block = serialize_block(genesis_block)
 
     recieve_block(serialized_block)
-
 
 
 def send_msg(data: bytes, node_hostname=None, port=None):

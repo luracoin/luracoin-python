@@ -1,20 +1,23 @@
 import binascii
 from .blockchain import Block, Transaction, TxIn, TxOut, OutPoint
+from .config import Config
 
 
 def deserialize_block(serialized_block):
-    magic = serialized_block[0:8]
+    # magic = serialized_block[0:8]
     version = serialized_block[8:16]
     prev_hash = serialized_block[16:80]
-    block_hash = serialized_block[80:144]
+    # block_hash = serialized_block[80:144]
     bits = serialized_block[144:152]
     timestamp = serialized_block[152:160]
     nonce = serialized_block[160:172]
 
     block = Block(
-        version=int.from_bytes(binascii.unhexlify(version), byteorder='little'),
+        version=int.from_bytes(
+            binascii.unhexlify(version), byteorder='little'),
         prev_block_hash=prev_hash,
-        timestamp=int.from_bytes(binascii.unhexlify(timestamp), byteorder='little'),
+        timestamp=int.from_bytes(
+            binascii.unhexlify(timestamp), byteorder='little'),
         bits=int.from_bytes(binascii.unhexlify(bits), byteorder='little'),
         nonce=int.from_bytes(binascii.unhexlify(nonce), byteorder='little'),
         txns=[]
@@ -46,11 +49,13 @@ def deserialize_transaction(tx):
         num_txs = tx[c:c+16]
         c = c + 16
 
-    num_txs = int.from_bytes(binascii.unhexlify(num_txs), byteorder='little')
+    num_txs = int.from_bytes(
+        binascii.unhexlify(num_txs), byteorder='little')
 
     for t in range(num_txs):
 
-        version = int.from_bytes(binascii.unhexlify(tx[c:c+4]), byteorder='little')
+        version = int.from_bytes(
+            binascii.unhexlify(tx[c:c+4]), byteorder='little')
         c = c + 4
 
         transaction = Transaction(
@@ -71,14 +76,15 @@ def deserialize_transaction(tx):
             number_txins = tx[c:c+16]
             c = c + 16
 
-        number_txins = int.from_bytes(binascii.unhexlify(number_txins), byteorder='little')
+        number_txins = int.from_bytes(
+            binascii.unhexlify(number_txins), byteorder='little')
 
         # TXIN
         for n in range(number_txins):
             # Transaction ID
             tx_id = tx[c:c+64]
             c = c + 64
-            if tx_id == '0000000000000000000000000000000000000000000000000000000000000000':
+            if tx_id == Config.COINBASE_TX_ID:
                 tx_id = 0
 
             # VOUT
@@ -87,7 +93,8 @@ def deserialize_transaction(tx):
             if vout == 'ffffffff':
                 vout = -1
             else:
-                vout = int.from_bytes(binascii.unhexlify(vout), byteorder='little')
+                vout = int.from_bytes(
+                    binascii.unhexlify(vout), byteorder='little')
 
             # SIGNATURE SIZE
             size_sig = tx[c:c+2]
@@ -102,7 +109,8 @@ def deserialize_transaction(tx):
                 size_sig = tx[c:c+16]
                 c = c + 16
 
-            size_sig = int.from_bytes(binascii.unhexlify(size_sig), byteorder='little')
+            size_sig = int.from_bytes(
+                binascii.unhexlify(size_sig), byteorder='little')
 
             # SIGNATURE
             sig = tx[c:c+size_sig]
@@ -110,7 +118,8 @@ def deserialize_transaction(tx):
 
             # SEQUENCE
             sequence = tx[c:c+8]
-            sequence = int.from_bytes(binascii.unhexlify(sequence), byteorder='little')
+            sequence = int.from_bytes(
+                binascii.unhexlify(sequence), byteorder='little')
 
             c = c + 8
 
@@ -134,10 +143,12 @@ def deserialize_transaction(tx):
             number_txins = tx[c:c+16]
             c = c + 16
 
-        number_txout = int.from_bytes(binascii.unhexlify(number_txout), byteorder='little')
+        number_txout = int.from_bytes(
+            binascii.unhexlify(number_txout), byteorder='little')
         for n in range(number_txout):
             # VALUE
-            value = int.from_bytes(binascii.unhexlify(tx[c:c+16]), byteorder='little')
+            value = int.from_bytes(
+                binascii.unhexlify(tx[c:c+16]), byteorder='little')
             c = c + 16
 
             # SIZE SCRIPT
@@ -153,7 +164,8 @@ def deserialize_transaction(tx):
                 size_script = tx[c:c+16]
                 c = c + 16
 
-            size_script = int.from_bytes(binascii.unhexlify(size_script), byteorder='little')
+            size_script = int.from_bytes(
+                binascii.unhexlify(size_script), byteorder='little')
             script = tx[c:c+size_script]
             c = c + size_script
 

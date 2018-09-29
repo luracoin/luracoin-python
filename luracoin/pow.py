@@ -1,11 +1,11 @@
 import hashlib
-import time
 
 
 def proof_of_work(last_proof):
     """
     Simple Proof of Work Algorithm:
-    - Find a number p' such that hash(pp') contains leading 4 zeroes, where p is the previous p'
+    - Find a number p' such that hash(pp') contains leading 4 zeroes,
+      where p is the previous p'
     - p is the previous proof, and p' is the new proof
 
     :param last_proof: Proof of work of the previous block
@@ -37,7 +37,6 @@ def valid_proof(last_proof, proof):
 
 def validate_pow(block):
     return True
-
 
 
 def mining_reward():

@@ -1,11 +1,8 @@
 from typing import Iterable, NamedTuple, Union
 import logging
-from .config import Config
-from .helpers import sha256d, var_int, get_current_height
+from .helpers import sha256d, var_int
 import os
-import binascii
-import plyvel
-import json
+from .config import Config
 
 
 logging.basicConfig(
@@ -20,6 +17,7 @@ OutPoint = NamedTuple('OutPoint', [
     ('txout_idx', int)
 ])
 
+
 class TxIn(NamedTuple):
     """Inputs to a Transaction."""
     # A reference to the output we're spending. This is None for coinbase
@@ -28,7 +26,7 @@ class TxIn(NamedTuple):
 
     # The (signature, pubkey) pair which unlocks the TxOut for spending.
     unlock_sig: str
-    #unlock_pk: bytes
+    # unlock_pk: bytes
 
     # A sender-defined sequence number which allows us replacement of the txn
     # if desired.
@@ -76,13 +74,15 @@ class Transaction(NamedTuple):
 
     @property
     def is_coinbase(self) -> bool:
-        return len(self.txins) == 1 and str(self.txins[0].to_spend.txid) == '0'
+        return (
+            len(self.txins) == 1 and str(self.txins[0].to_spend.txid) == '0')
 
     @property
     def id(self) -> str:
         msg = ''
         for x in self.txins:
-            msg = msg + str(x.to_spend.txid) + str(x.to_spend.txout_idx) + str(x.unlock_sig) + str(x.sequence)
+            msg = msg + str(x.to_spend.txid) + str(x.to_spend.txout_idx) + \
+                str(x.unlock_sig) + str(x.sequence)
         for y in self.txouts:
             msg = msg + str(y.value) + str(y.to_address)
 
@@ -98,18 +98,23 @@ class Transaction(NamedTuple):
 
     def serialize_transaction(self):
         total = ''
-        version = self.version.to_bytes(2, byteorder='little', signed=False).hex()
+        version = self.version.to_bytes(
+            2, byteorder='little', signed=False).hex()
 
         # INPUTS:
         num_inputs = len(self.txins)
         if num_inputs <= 252:
-            num_inputs = num_inputs.to_bytes(1, byteorder='little', signed=False).hex()
+            num_inputs = num_inputs.to_bytes(
+                1, byteorder='little', signed=False).hex()
         elif num_inputs <= 65535:
-            num_inputs = "fd" + num_inputs.to_bytes(2, byteorder='little', signed=False).hex()
+            num_inputs = "fd" + num_inputs.to_bytes(
+                2, byteorder='little', signed=False).hex()
         elif num_inputs <= 4294967295:
-            num_inputs = "fe" + num_inputs.to_bytes(4, byteorder='little', signed=False).hex()
+            num_inputs = "fe" + num_inputs.to_bytes(
+                4, byteorder='little', signed=False).hex()
         else:
-            num_inputs = "ff" + num_inputs.to_bytes(8, byteorder='little', signed=False).hex()
+            num_inputs = "ff" + num_inputs.to_bytes(
+                8, byteorder='little', signed=False).hex()
 
         total = version + num_inputs
 
@@ -117,18 +122,21 @@ class Transaction(NamedTuple):
             tx_id = i.to_spend.txid
 
             if i.to_spend.txid == 0:
-                tx_id = "0000000000000000000000000000000000000000000000000000000000000000"
+                tx_id = Config.COINBASE_TX_ID
 
             # Output to spent
             if i.to_spend.txout_idx == -1:
                 vout = 'ffffffff'  # Index. ffffffff for Coinbase
             else:
-                vout = i.to_spend.txout_idx.to_bytes(4, byteorder='little', signed=False).hex()
+                vout = i.to_spend.txout_idx.to_bytes(
+                    4, byteorder='little', signed=False).hex()
 
             script_sig = i.unlock_sig
             script_sig_size = var_int(len(script_sig))  # VarInt
-            sequence = i.sequence.to_bytes(4, byteorder='little', signed=False).hex()
-            total = total + str(tx_id) + vout + str(script_sig_size) + script_sig + sequence
+            sequence = i.sequence.to_bytes(
+                4, byteorder='little', signed=False).hex()
+            total = total + str(tx_id) + vout + str(script_sig_size) + \
+                script_sig + sequence
 
         # OUTPUTS:
         num_outputs = len(self.txouts)

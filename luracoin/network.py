@@ -1,26 +1,38 @@
 import binascii
 import time
 import json
-import hashlib
 import threading
 import logging
 import socketserver
 import socket
 import random
 import os
-from functools import lru_cache, wraps
 from typing import (
-    Iterable, NamedTuple, Dict, Mapping, Union, get_type_hints, Tuple,
-    Callable)
-from .blocks import serialize_block
-from .serialize import deserialize_block, deserialize_transaction
-from .blockchain import Block, TxOut, TxIn, UnspentTxOut, Transaction, OutPoint
-import ecdsa
-from base58 import b58encode_check
+    Iterable, NamedTuple, Mapping, get_type_hints)
+from .serialize import deserialize_transaction
 from .config import Config
 import redis
 
 mempool_db = redis.StrictRedis(host='localhost', port=6379, db=0)
+
+# =========================================================
+# =========================================================
+# DELETE THIS. This is only here to prevent from failing since
+# this is a temporal file and still in WIP.
+
+locate_block = None
+active_chain = None
+chain_lock = None
+active_chain = None
+locate_block = None
+connect_block = None
+active_chain = None
+chain_lock = None
+utxo_set = None
+active_chain = None
+
+# =========================================================
+# =========================================================
 
 
 logging.basicConfig(
@@ -135,7 +147,7 @@ def send_to_peer(data, peer=None):
 
     while tries_left > 0:
         try:
-            with socket.create_connection((peer, PORT), timeout=1) as s:
+            with socket.create_connection((peer, Config.PORT), timeout=1) as s:
                 s.sendall(encode_socket_data(data))
         except Exception:
             logger.exception(f'failed to send to peer {peer}')
@@ -208,7 +220,6 @@ def deserialize(serialized: str) -> object:
     return contents_to_objs(json.loads(serialized))
 
 
-
 class TCPHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
@@ -218,7 +229,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
         logger.info(f'received msg...')
         if data[0:8] == Config.MAGIC_BYTES:
-            
             if data[8:32] == '74786e000000000000000000':
                 tx = deserialize_transaction("01" + data[32:])
                 mempool_db.set(tx[0].id, tx[0])
@@ -228,10 +238,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 logger.info(f'received msg {data} from peer {peer_hostname}')
                 data.handle(self.request, peer_hostname)
             elif isinstance(data, Transaction):
-                logger.info(f"received txn {data.id} from peer {peer_hostname}")
+                logger.info(f"
+                    received txn {data.id} from peer {peer_hostname}")
                 add_txn_to_mempool(data)
             elif isinstance(data, Block):
-                logger.info(f"received block {data.id} from peer {peer_hostname}")
+                logger.info(f"
+                    received block {data.id} from peer {peer_hostname}")
                 connect_block(data)
             '''
-

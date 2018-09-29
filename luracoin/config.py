@@ -1,15 +1,17 @@
 import os
 
+
 class Config:
     # Wallet path
-    test_var = "Hey"
     BASE_DIR = os.path.normpath(os.getcwd() + os.sep + os.pardir) + "/luracoin"
-    
+
     WALLET_PATH = BASE_DIR + '/bin/wallet.dat'
 
     MAGIC_BYTES = "ba77d89f"
 
     MAX_TX_PER_BLOCK = 65_535
+
+    PORT = 9999
 
     # Data dir
     DATA_DIR = BASE_DIR + '/bin/data/'
@@ -26,6 +28,9 @@ class Config:
     #
     # This is "100" in bitcoin core.
     COINBASE_MATURITY = 2
+
+    COINBASE_TX_ID = "000000000000000000000000000000000000000000000000000" \
+        "0000000000000"
 
     # Accept blocks timestamped as being from the future, up to this amount.
     MAX_FUTURE_BLOCK_TIME = (60 * 60 * 2)
@@ -55,7 +60,8 @@ class Config:
     # After this number of blocks are found, adjust difficulty.
     #
     # #realname DifficultyAdjustmentInterval
-    DIFFICULTY_PERIOD_IN_BLOCKS = (DIFFICULTY_PERIOD_TARGET / TIME_BETWEEN_BLOCKS_TARGET)
+    DIFFICULTY_PERIOD_IN_BLOCKS = (
+        DIFFICULTY_PERIOD_TARGET / TIME_BETWEEN_BLOCKS_TARGET)
 
     # The number of right-shifts applied to 2 ** 256 in order to create the
     # initial difficulty target necessary for mining a block.

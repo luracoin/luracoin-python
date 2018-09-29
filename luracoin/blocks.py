@@ -1,15 +1,12 @@
-from typing import Iterable, NamedTuple, Union
-import logging
 from .config import Config
-import os
-import hashlib
-import binascii
-from .wallet import init_wallet
-from .transactions import validate_tx, remove_tx_from_chainstate, add_tx_to_chainstate
-from .blockchain import Block, TxOut, TxIn, UnspentTxOut, Transaction, OutPoint
+from .transactions import (
+    validate_tx,
+    remove_tx_from_chainstate,
+    add_tx_to_chainstate
+)
 from .serialize import deserialize_block
 from .pow import validate_pow
-from .helpers import var_int, get_blk_file_size, sha256d
+from .helpers import var_int, get_blk_file_size
 import plyvel
 
 
@@ -24,17 +21,20 @@ def serialize_block(block):
     -> Timestamp (4 bytes)
     -> Nonce (6 bytes)
     '''
-    version = block.version.to_bytes(4, byteorder='little', signed=False).hex()
+    version = block.version.to_bytes(
+        4, byteorder='little', signed=False).hex()
 
     if block.prev_block_hash == 0:
-        prev_hash = "0000000000000000000000000000000000000000000000000000000000000000"
+        prev_hash = Config.COINBASE_TX_ID
     else:
         prev_hash = block.prev_block_hash
 
     bits = block.bits.to_bytes(4, byteorder='little', signed=False).hex()
-    timestamp = block.timestamp.to_bytes(4, byteorder='little', signed=False).hex()
+    timestamp = block.timestamp.to_bytes(
+        4, byteorder='little', signed=False).hex()
     nonce = block.nonce.to_bytes(6, byteorder='little', signed=False).hex()
-    total = Config.MAGIC_BYTES + version + prev_hash + block.id + bits + timestamp + nonce
+    total = Config.MAGIC_BYTES + version + prev_hash + block.id + bits \
+        + timestamp + nonce
 
     # Tx_count
     tx_count = var_int(len(block.txns))
@@ -49,8 +49,8 @@ def serialize_block(block):
 
 def recieve_block(block):
     '''
-    Triggered when you recieve a block over the P2P network or when you create one. This function
-    Validate the block and add it to the chain.
+    Triggered when you recieve a block over the P2P network or when you create
+    one. This function validates the block and add it to the chain.
 
     :param block: Block object
     '''
@@ -66,7 +66,11 @@ def validate_block(block):
     :return: Boolean
     '''
     block = deserialize_block(block)
-    if validate_pow(block) and validate_basics(block) and validate_transactions(block):
+    if (
+        validate_pow(block) and
+        validate_basics(block) and
+        validate_transactions(block)
+    ):
         return True
 
 
@@ -111,7 +115,6 @@ def next_blk_file(current_blk_file: str) -> str:
     return str(int(current_blk_file) + 1).zfill(6)
 
 
-
 def process_block_transactions(block):
     '''
     Add outputs to the chainstate and delete the inputs used.
@@ -119,16 +122,19 @@ def process_block_transactions(block):
     for tx in block.txns:
         for tx_spent in tx.txins:
             if tx_spent.to_spend.txid != 0:
-                remove_tx_from_chainstate(tx_spent.to_spend.txid, tx_spent.to_spend.txout_idx)
+                remove_tx_from_chainstate(
+                    tx_spent.to_spend.txid,
+                    tx_spent.to_spend.txout_idx
+                )
 
         add_tx_to_chainstate(tx, int(block.txns[0].txins[0].unlock_sig))
 
 
-
 def add_block_to_chain(serialized_block):
     '''
-    Save a serialized block in "blkXXXXX.dat file". If the current file size is greater than 
-    Config.MAX_FILE_SIZE then we'll create another file and save the numberinfo LevelDB.
+    Save a serialized block in "blkXXXXX.dat file". If the current file size
+    is greater than Config.MAX_FILE_SIZE then we'll create another file and
+    save the numberinfo LevelDB.
 
     Data:
     [  magic bytes ]  <- 4 bytes
@@ -142,21 +148,29 @@ def add_block_to_chain(serialized_block):
 
     if validate_block(serialized_block):
         # Substract the length of the Magic Numbers
-        size_block = int(len(serialized_block) - 8).to_bytes(4, byteorder='little', signed=False).hex()
-        serialized_block = serialized_block[:8] + size_block + serialized_block[8:]
+        size_block = int(len(serialized_block) - 8)\
+            .to_bytes(4, byteorder='little', signed=False).hex()
+        serialized_block = serialized_block[:8] + size_block \
+            + serialized_block[8:]
 
         # Get the current file
         db = plyvel.DB(Config.BLOCKS_DIR + 'index', create_if_missing=True)
         last_blk_file = db.get(b'l')
-        
+
         # If there is not a current file we'll start by '000000'
-        if last_blk_file is None or last_blk_file == '' or last_blk_file == b'':
+        if (
+            last_blk_file is None or
+            last_blk_file == '' or
+            last_blk_file == b''
+        ):
             last_blk_file = '000000'
         else:
             last_blk_file.decode('utf-8')
 
-        # If the actual file size is greater or equal to MAX_FILE_SIZE we'll increase it by one
-        if get_blk_file_size("blk" + str(last_blk_file) + ".dat") >= Config.MAX_FILE_SIZE:
+        # If the actual file size is greater or equal to MAX_FILE_SIZE we'll
+        # increase it by one
+        filename = "blk" + str(last_blk_file) + ".dat"
+        if get_blk_file_size(filename) >= Config.MAX_FILE_SIZE:
             last_blk_file = next_blk_file(last_blk_file)
 
         try:
