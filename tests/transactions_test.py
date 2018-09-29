@@ -5,7 +5,7 @@ sys.path.insert(0, myPath + '/../')
 from luracoin.blocks import get_blk_file_size, next_blk_file, Block, serialize_block, add_block_to_chain
 from luracoin.search import blk_to_list
 from luracoin.serialize import deserialize_transaction
-from luracoin.transactions import build_p2pkh
+from luracoin.transactions import build_p2pkh, validate_signature
 from luracoin.blockchain import TxOut, TxIn, UnspentTxOut, Transaction, OutPoint
 from luracoin.transactions import add_tx_to_chainstate, read_tx_from_chainstate, remove_tx_from_chainstate, validate_tx
 from luracoin.config import Config
@@ -99,50 +99,83 @@ class TransactionsTest(LuracoinTest):
         self.assertEqual(info1['size'] - 2, info2['size'])
 
     def test_validate_tx(self):
+        # Coinbase transaction with the correct reward
         tx_0 = Transaction(
-            version=1,
+            version=1, locktime=0,
             txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)],
-            txouts=[TxOut(value=5000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))],
-            locktime=0
+            txouts=[TxOut(value=5000000000, to_address=build_p2pkh(self.address1))]
         )
         self.assertTrue(validate_tx(tx_0))
 
+        # Empty TXIN
         tx_test_1 = Transaction(
-            version=1,
-            txins=[],
+            version=1, locktime=0, txins=[],
             txouts=[
-                TxOut(value=3000000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))
+                TxOut(value=3000000000, to_address=build_p2pkh(self.address1))
             ],
-            locktime=0
         )
         self.assertFalse(validate_tx(tx_test_1))
 
+        # Empty TXOUT
         tx_test_2 = Transaction(
-            version=1,
+            version=1, locktime=0,
             txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)],
             txouts=[],
-            locktime=0
         )
         self.assertFalse(validate_tx(tx_test_2))
 
+        # Is a Coinbase transaction with a reward greater than 50 LURA
         tx_test_3 = Transaction(
-            version=1,
+            version=1, locktime=0,
             txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)],
-            txouts=[TxOut(value=5100000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS'))],
-            locktime=0
+            txouts=[TxOut(value=5100000000, to_address=build_p2pkh(self.address1))],
         )
         self.assertFalse(validate_tx(tx_test_3))
 
+        # Is a Coinbase transaction with a reward greater than 50 LURA
         tx_test_4 = Transaction(
-            version=1,
+            version=1, locktime=0,
             txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)],
             txouts=[
-                TxOut(value=4900000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS')),
-                TxOut(value=200000000, to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS')),
-            ],
-            locktime=0
+                TxOut(value=4900000000, to_address=build_p2pkh(self.address1)),
+                TxOut(value=200000000, to_address=build_p2pkh(self.address1)),
+            ]
         )
         self.assertFalse(validate_tx(tx_test_4))
+
+        # The Amount is greater than the total supply
+        tx_test_5 = Transaction(
+            version=1, locktime=0,
+            txins=[TxIn(to_spend=OutPoint(self.tx0, 0), unlock_sig='0', sequence=0)],
+            txouts=[
+                TxOut(value=2100004900000000, to_address=build_p2pkh(self.address1)),
+                TxOut(value=200000000, to_address=build_p2pkh(self.address1)),
+            ]
+        )
+        self.assertFalse(validate_tx(tx_test_5))
+
+
+    def test_validate_signature(self):
+        db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
+        info = {}
+        for key, value in db:
+            info[key.decode()] = value.decode()
+
+        info['size'] = len(info)
+        db.close()
+
+        v1 = validate_signature(
+            TxIn(
+                to_spend=OutPoint(self.tx1.id, 0),
+                unlock_sig='-', sequence=0))
+        self.assertFalse(v1)
+        # Trabajar en validar la transaccion.
+        assert False
+
+    @unittest.skip("WIP")
+    def test_todo(self):
+        self.assertEquals(1, 2)
+        # Genesis block no guarda la tx en el chainstate.
 
 
 if __name__ == '__main__':

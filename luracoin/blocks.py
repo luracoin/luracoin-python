@@ -165,13 +165,17 @@ def add_block_to_chain(serialized_block):
             pass
 
         try:
-            f = open(Config.BLOCKS_DIR + "blk" + last_blk_file.decode() + ".dat", 'ab+')
+            f = open(
+                Config.BLOCKS_DIR + "blk" + last_blk_file.decode() + ".dat",
+                'ab+'
+            )
             contents = f.read()
             f.close()
         except FileNotFoundError:
             contents = b''
 
-        with open(Config.BLOCKS_DIR + "blk" + last_blk_file.decode() + ".dat", "ab+") as f:
+        filename = Config.BLOCKS_DIR + "blk" + last_blk_file.decode() + ".dat"
+        with open(filename, "ab+") as f:
             f.write(contents + serialized_block.encode())
 
         # Save the current file number

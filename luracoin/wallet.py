@@ -36,7 +36,10 @@ def init_wallet():
 
     if os.path.exists(path):
         with open(path, 'rb') as f:
-            signing_key = ecdsa.SigningKey.from_string(f.read(), curve=ecdsa.SECP256k1)
+            signing_key = ecdsa.SigningKey.from_string(
+                f.read(),
+                curve=ecdsa.SECP256k1
+            )
     else:
         signing_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
         with open(path, 'wb') as f:
@@ -51,7 +54,10 @@ def init_wallet():
 def get_wallet():
     path = Config.WALLET_PATH
     with open(path, 'rb') as f:
-        signing_key = ecdsa.SigningKey.from_string(f.read(), curve=ecdsa.SECP256k1)
+        signing_key = ecdsa.SigningKey.from_string(
+            f.read(),
+            curve=ecdsa.SECP256k1
+        )
 
     verifying_key = signing_key.get_verifying_key()
     my_address = pubkey_to_address(verifying_key.to_string())

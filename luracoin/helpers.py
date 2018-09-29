@@ -1,6 +1,5 @@
 from typing import Union, Iterable
 import hashlib
-import binascii
 from .config import Config
 import os
 import plyvel
@@ -52,5 +51,5 @@ def get_current_height():
     db = plyvel.DB(Config.BLOCKS_DIR + 'index', create_if_missing=True)
     heigth = db.get(b'b')
     db.close()
-    
+
     return int(heigth.decode())

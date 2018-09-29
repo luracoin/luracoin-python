@@ -22,7 +22,6 @@ def validate_tx(tx):
     Validate a transaction. For a transaction to be valid it has to follow these conditions:
     - Value is less than the total supply.
     - Tx size is less than the block size limit.
-    - Txin and Txout not empty
     - Value has to be equal or less than the spending transaction
     - Valid unlocking code
     """
@@ -47,7 +46,40 @@ def validate_tx(tx):
         if total_value > total_to_spend:
             return False
 
+        # VALIDATE SIGNATURE HERE
+
     return True
+
+
+def validate_signature(tx_input):
+    # WIP
+    # P2PKH:
+    # [PUB_KEY][SIGNATURE]<DUP><HASH160>[ADDRESS]<EQUALVERIFY><CHECKSIG>
+
+    # Get the unlocking script.
+    db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
+    try:
+        tx_info = read_tx_from_chainstate(
+            db.get(b'c' + tx_input.to_spend.txid.encode() + str(tx_input.to_spend.txout_idx).encode()).decode()
+        )
+    except AttributeError:
+        return False
+    finally:
+        db.close()
+
+    unlocking_script = tx_info['output'][16:]
+    stack = []
+    working_stock = []
+
+    acum = 0
+    while acum < len(unlocking_script):
+        print(unlocking_script[acum:acum+2])
+        acum += 2
+
+    #print("\n===============")
+    #print(unlocking_script)
+    #print("===============\n")
+
 
 
 def build_message(to_spend, pub_key):
@@ -205,5 +237,5 @@ def read_tx_from_chainstate(tx):
         'output': tx[12:]
     }
 
-    # print(json.dumps(tx_info, indent=4))
+    #print(json.dumps(tx_info, indent=4))
     return tx_info
