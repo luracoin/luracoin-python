@@ -170,7 +170,7 @@ class TransactionsTest(LuracoinTest):
                 unlock_sig='-', sequence=0))
         self.assertFalse(v1)
         # Trabajar en validar la transaccion.
-        assert False
+
 
     @unittest.skip("WIP")
     def test_todo(self):

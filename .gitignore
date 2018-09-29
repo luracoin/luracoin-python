@@ -56,3 +56,5 @@ docs/_build/
 *.pyc
 .DS_Store
 *venv/
+.pytest_cache/*
+.mypy_cache/*
