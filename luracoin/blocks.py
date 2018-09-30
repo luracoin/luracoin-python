@@ -10,7 +10,7 @@ from .helpers import var_int, get_blk_file_size
 import plyvel
 
 
-def serialize_block(block):
+def serialize_block(block: Block) -> str:
     '''
     Magic bytes (4 bytes)
     Block header (82 bytes)
@@ -47,7 +47,7 @@ def serialize_block(block):
     return total
 
 
-def recieve_block(block):
+def recieve_block(block: str) -> None:
     '''
     Triggered when you recieve a block over the P2P network or when you create
     one. This function validates the block and add it to the chain.

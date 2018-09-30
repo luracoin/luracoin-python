@@ -31,7 +31,7 @@ def bytes_to_signing_key(str_key: bytes) -> ecdsa.SigningKey:
 
 
 @lru_cache()
-def init_wallet():
+def init_wallet() -> list:
     path = Config.WALLET_PATH
 
     if os.path.exists(path):
@@ -51,7 +51,7 @@ def init_wallet():
     return signing_key, verifying_key, my_address
 
 
-def get_wallet():
+def get_wallet() -> list:
     path = Config.WALLET_PATH
     with open(path, 'rb') as f:
         signing_key = ecdsa.SigningKey.from_string(
@@ -65,7 +65,7 @@ def get_wallet():
     return signing_key, verifying_key, my_address
 
 
-def generate_new_keys():
+def generate_new_keys() -> list:
     signing_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
     verifying_key = signing_key.get_verifying_key()
     my_address = pubkey_to_address(verifying_key.to_string())

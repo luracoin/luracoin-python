@@ -172,7 +172,7 @@ class Block(NamedTuple):
     # Transaction list
     txns: list
 
-    def pretty_print(self):
+    def pretty_print(self) -> None:
         print("===========\n")
         print("Version: " + str(self.version))
         print("Hash: " + self.id)

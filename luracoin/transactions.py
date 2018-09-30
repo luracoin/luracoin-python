@@ -14,7 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def validate_tx(tx):
+def validate_tx(tx: Transaction):
     """
     Validate a transaction. For a transaction to be valid it has to follow
     hese conditions:
@@ -84,14 +84,14 @@ def validate_signature(tx_input):
     # print("===============\n")
 
 
-def build_message(to_spend, pub_key):
+def build_message(to_spend: int, pub_key: str) -> str:
     """
     TODO: INSECURE, HAS TO BE IMPROVE
     """
     return sha256d(str(to_spend.txid) + str(to_spend.txout_idx) + pub_key)
 
 
-def build_script_sig(signature, pub_key):
+def build_script_sig(signature: str, pub_key: str) -> str:
     """
     <VARINT>SIGNATURE<VARINT>PUBLIC_KEY
     """
@@ -191,7 +191,7 @@ def utxo_value(tx_id: str, vout: int):
         binascii.unhexlify(tx_info['output'][:16]), byteorder='little')
 
 
-def remove_tx_from_chainstate(tx, vout):
+def remove_tx_from_chainstate(tx: str, vout: int) -> None:
     """
     Remove UTXO from the chainstate.
 
@@ -247,7 +247,7 @@ def add_tx_to_chainstate(tx, height: int):
         db.close()
 
 
-def read_tx_from_chainstate(tx):
+def read_tx_from_chainstate(tx: str) -> Dict:
     """
     Read a transaction from the LevelDB Chainstate. And returns a Dictionary
     with all the information.

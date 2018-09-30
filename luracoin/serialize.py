@@ -3,7 +3,7 @@ from .blockchain import Block, Transaction, TxIn, TxOut, OutPoint
 from .config import Config
 
 
-def deserialize_block(serialized_block):
+def deserialize_block(serialized_block: str) -> Block:
     # magic = serialized_block[0:8]
     version = serialized_block[8:16]
     prev_hash = serialized_block[16:80]

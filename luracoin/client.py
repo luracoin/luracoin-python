@@ -91,7 +91,7 @@ def main(args):
         generate_keys()
 
 
-def getChainstate():
+def getChainstate() -> None:
     db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
     info = {}
     for key, value in db:
@@ -102,7 +102,7 @@ def getChainstate():
     print(json.dumps(info, indent=4))
 
 
-def getBlockchainInfo():
+def getBlockchainInfo() -> None:
     db = plyvel.DB(Config.BLOCKS_DIR + 'index', create_if_missing=True)
     key_values = {}
 
@@ -122,14 +122,14 @@ def getBlockchainInfo():
     print(json.dumps(info, indent=4))
 
 
-def tx():
+def tx() -> None:
     block = find_block_in_file(55, '000000')
     print(block)
     block = find_block_in_file(15787, '000000')
     print(block)
 
 
-def generate_keys():
+def generate_keys() -> None:
     address = generate_new_keys()
     info = {
         "address": address[2],
@@ -140,7 +140,7 @@ def generate_keys():
     print(info)
 
 
-def getWallet():
+def getWallet() -> None:
     address = get_wallet()
     pub_key = address_to_pubkey(address[2])
     utxo = search_utxo(address[2])
@@ -182,7 +182,7 @@ def get_block(args):
     return result
 
 
-def start(args):
+def start(args) -> None:
     peer_hostnames = {
         p for p in os.environ.get('TC_PEERS', '').split(',') if p
     }
@@ -207,7 +207,7 @@ def start(args):
     [w.join() for w in workers]
 
 
-def mine_forever():
+def mine_forever() -> None:
 
     while True:
         db = plyvel.DB(Config.BLOCKS_DIR + 'index', create_if_missing=True)
@@ -254,12 +254,12 @@ def mine_forever():
         recieve_block(serialized_block)
 
 
-def get_mempool(args):
+def get_mempool(args) -> None:
     mempool = send_msg(GetMempoolMsg())
     print(mempool)
 
 
-def send_transaction(args):
+def send_transaction(args) -> None:
     tx_out = TxOut(
         value=5000000000,
         to_address="1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS"
@@ -285,7 +285,7 @@ def send_transaction(args):
     send_msg(msg)
 
 
-def start_blockchain(args):
+def start_blockchain(args) -> None:
     '''
     Deletes all the data an initializes the new Blockchain.
     Example:
@@ -321,7 +321,7 @@ def start_blockchain(args):
     recieve_block(serialized_block)
 
 
-def send_msg(data: bytes, node_hostname=None, port=None):
+def send_msg(data: bytes, node_hostname=None, port=None) -> None:
     node_hostname = getattr(send_msg, 'node_hostname', 'localhost')
     port = getattr(send_msg, 'port', 9999)
 

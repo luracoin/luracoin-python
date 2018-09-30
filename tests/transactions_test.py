@@ -15,8 +15,12 @@ from tests.blockchain_test import LuracoinTest
 
 class TransactionsTest(LuracoinTest):
 
+    address1: str
+    address2: str
+    address3: str
+
     @unittest.skip("WIP")
-    def test_chainstate(self):
+    def test_chainstate(self) -> None:
         tx = Transaction(
             version=1,
             txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)],
@@ -112,12 +116,19 @@ class TransactionsTest(LuracoinTest):
         self.assertEqual(tx_info_zero['version'], 1)
         self.assertEqual(tx_info_zero['coinbase'], 0)
         self.assertEqual(tx_info_zero['height'], 1)
-        self.assertEqual(tx_info_zero['output'], "00ab87040000000076a9150057e09a8cea5300ca102f0a11108fd4908f6aa95988ac")
+        self.assertEqual(
+            tx_info_zero['output'],
+            "00ab87040000000076a9150057e09a8cea5300ca102f0a11108fd4908f6aa"
+            "95988ac"
+        )
 
         self.assertEqual(tx_info_one['version'], 1)
         self.assertEqual(tx_info_one['coinbase'], 0)
         self.assertEqual(tx_info_one['height'], 1)
-        self.assertEqual(tx_info_one['output'], "406f40010000000076a9150057e09a8cea5300ca102f0a11108fd4908f6aa95988ac")
+        self.assertEqual(
+            tx_info_one['output'],
+            "406f40010000000076a9150057e09a8cea5300ca102f0a11108fd4908f6aa"
+            "95988ac")
 
         db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
         info1 = {}
@@ -126,8 +137,16 @@ class TransactionsTest(LuracoinTest):
         info1['size'] = len(info1)
         db.close()
 
-        remove_tx_from_chainstate("27b397b0657ac7410930be64e074219cdcfa88ef5e5b011027b38e6b5acda126", 0)
-        remove_tx_from_chainstate("c2821034a332fad997e38281f8d9d6ac765171ac41f9c761f9d0cc54e02a17ee", 1)
+        remove_tx_from_chainstate(
+            tx="27b397b0657ac7410930be64e074219cdcfa88ef5e5b011027b38e6b5ac"
+               "da126",
+            vout=0
+        )
+        remove_tx_from_chainstate(
+            tx="c2821034a332fad997e38281f8d9d6ac765171ac41f9c761f9d0cc54e0"
+               "2a17ee",
+            vout=1
+        )
 
         db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
         info2 = {}
@@ -138,12 +157,16 @@ class TransactionsTest(LuracoinTest):
 
         self.assertEqual(info1['size'] - 2, info2['size'])
 
-    def test_validate_tx(self):
+    def test_validate_tx(self) -> None:
         # Coinbase transaction with the correct reward
         tx_0 = Transaction(
             version=1, locktime=0,
-            txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)],
-            txouts=[TxOut(value=5000000000, to_address=build_p2pkh(self.address1))]
+            txins=[
+                TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)
+            ],
+            txouts=[
+                TxOut(value=5000000000, to_address=build_p2pkh(self.address1))
+            ]
         )
         self.assertTrue(validate_tx(tx_0))
 
@@ -159,7 +182,9 @@ class TransactionsTest(LuracoinTest):
         # Empty TXOUT
         tx_test_2 = Transaction(
             version=1, locktime=0,
-            txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)],
+            txins=[
+                TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)
+            ],
             txouts=[],
         )
         self.assertFalse(validate_tx(tx_test_2))
@@ -211,7 +236,7 @@ class TransactionsTest(LuracoinTest):
         )
         self.assertFalse(validate_tx(tx_test_5))
 
-    def test_validate_signature(self):
+    def test_validate_signature(self) -> None:
         db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
         info = {}
         for key, value in db:
@@ -228,7 +253,7 @@ class TransactionsTest(LuracoinTest):
         # Trabajar en validar la transaccion.
 
     @unittest.skip("WIP")
-    def test_todo(self):
+    def test_todo(self) -> None:
         self.assertEquals(1, 2)
         # Genesis block no guarda la tx en el chainstate.
 

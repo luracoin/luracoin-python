@@ -8,4 +8,4 @@ install:
 script: 
   - pytest
   - flake8
-  - mypy luracoin
+  - mypy .

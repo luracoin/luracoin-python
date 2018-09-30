@@ -11,23 +11,27 @@ import unittest
 
 class BlocksTest(LuracoinTest):
 
-    maxDiff = None
+    genesis_block: Block
+    address1: str
+    address2: str
+    address3: str
+    private_key2: bytes
 
-    def test_blk_to_list(self):
+    def test_blk_to_list(self) -> None:
         self.assertEqual(len(blk_to_list('000000', True)), 2)
         self.assertEqual(len(blk_to_list('000000')), 2)
 
-    def test_next_blk_file(self):
+    def test_next_blk_file(self) -> None:
         self.assertEqual(next_blk_file('000000'), '000001')
         self.assertEqual(next_blk_file('000009'), '000010')
         self.assertEqual(next_blk_file('000020'), '000021')
         self.assertEqual(next_blk_file('000099'), '000100')
 
-    def test_find_block_in_file(self):
+    def test_find_block_in_file(self) -> None:
         block = find_block_in_file(blk_height=0, blk_file='000000')
         self.assertEqual(block.id, self.genesis_block.id)
 
-    def test_serialize_block(self):
+    def test_serialize_block(self) -> None:
         signature = bytes_to_signing_key(self.private_key2).sign(
             build_message(
                 OutPoint(self.tx2.id, 0),

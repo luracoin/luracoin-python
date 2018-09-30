@@ -1,7 +1,7 @@
 import hashlib
 
 
-def proof_of_work(last_proof):
+def proof_of_work(last_proof: str) -> str:
     """
     Simple Proof of Work Algorithm:
     - Find a number p' such that hash(pp') contains leading 4 zeroes,
@@ -21,7 +21,7 @@ def proof_of_work(last_proof):
     return proof
 
 
-def valid_proof(last_proof, proof):
+def valid_proof(last_proof: str, proof: str) -> str:
     """
     Validates the Proof
 
@@ -35,7 +35,7 @@ def valid_proof(last_proof, proof):
     return guess_hash[:1] == "0"
 
 
-def validate_pow(block):
+def validate_pow(block: Block) -> bool:
     return True
 
 
