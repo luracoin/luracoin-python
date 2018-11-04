@@ -1,10 +1,11 @@
-import unittest
 import os
 import shutil
-from luracoin.blocks import serialize_block, add_block_to_chain
-from luracoin.blockchain import TxOut, TxIn, Transaction, OutPoint, Block
-from luracoin.transactions import build_message, build_p2pkh, build_script_sig
+import unittest
+
+from luracoin.blockchain import Block, OutPoint, Transaction, TxIn, TxOut
+from luracoin.blocks import add_block_to_chain, serialize_block
 from luracoin.config import Config
+from luracoin.transactions import build_message, build_p2pkh, build_script_sig
 from luracoin.wallet import bytes_to_signing_key
 
 

@@ -1,4 +1,5 @@
 import unittest
+
 from luracoin.wallet import address_to_pubkey, bytes_to_signing_key
 
 

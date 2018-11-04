@@ -1,15 +1,12 @@
-from luracoin.transactions import build_p2pkh, validate_signature
-from luracoin.blockchain import TxOut, TxIn, Transaction, OutPoint
-from luracoin.transactions import (
-    add_tx_to_chainstate,
-    read_tx_from_chainstate,
-    remove_tx_from_chainstate,
-    validate_tx
-)
-from luracoin.config import Config
 import unittest
-import plyvel
 
+import plyvel
+from luracoin.blockchain import OutPoint, Transaction, TxIn, TxOut
+from luracoin.config import Config
+from luracoin.transactions import (add_tx_to_chainstate, build_p2pkh,
+                                   read_tx_from_chainstate,
+                                   remove_tx_from_chainstate,
+                                   validate_signature, validate_tx)
 from tests.blockchain_test import LuracoinTest
 
 

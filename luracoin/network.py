@@ -1,19 +1,20 @@
 import binascii
-import time
 import json
-import threading
 import logging
-import socketserver
-import socket
-import random
 import os
-from typing import (
-    Iterable, NamedTuple, Mapping, get_type_hints)
-from .serialize import deserialize_transaction
-from .config import Config
+import random
+import socket
+import socketserver
+import threading
+import time
+from typing import Iterable, Mapping, NamedTuple, get_type_hints
+
 import redis
 
-mempool_db = redis.StrictRedis(host='localhost', port=6379, db=0)
+from .config import Config
+from .serialize import deserialize_transaction
+
+mempool_db = redis.StrictRedis(host="localhost", port=6379, db=0)
 
 # =========================================================
 # =========================================================
@@ -36,8 +37,9 @@ active_chain = None
 
 
 logging.basicConfig(
-    level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
-    format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
+    level=getattr(logging, os.environ.get("TC_LOG_LEVEL", "INFO")),
+    format="[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 mempool = {
@@ -49,7 +51,7 @@ mempool = {
     "def789": "content6",
 }
 
-peer_hostnames = {p for p in os.environ.get('TC_PEERS', '').split(',') if p}
+peer_hostnames = {p for p in os.environ.get("TC_PEERS", "").split(",") if p}
 
 # Signal when the initial block download has completed.
 ibd_done = threading.Event()
@@ -59,6 +61,7 @@ class GetBlocksMsg(NamedTuple):  # Request blocks during initial sync
     """
     See https://bitcoin.org/en/developer-guide#blocks-first
     """
+
     from_blockid: str
 
     CHUNK_SIZE = 50
@@ -73,7 +76,7 @@ class GetBlocksMsg(NamedTuple):  # Request blocks during initial sync
         height = height or 1
 
         with chain_lock:
-            blocks = active_chain[height:(height + self.CHUNK_SIZE)]
+            blocks = active_chain[height : (height + self.CHUNK_SIZE)]
 
         logger.debug(f"[p2p] sending {len(blocks)} to {peer_hostname}")
         send_to_peer(InvMsg(blocks), peer_hostname)
@@ -88,7 +91,7 @@ class InvMsg(NamedTuple):  # Convey blocks to a peer who is doing initial sync
         new_blocks = [b for b in self.blocks if not locate_block(b.id)[0]]
 
         if not new_blocks:
-            logger.info('[p2p] initial block download complete')
+            logger.info("[p2p] initial block download complete")
             ibd_done.set()
             return
 
@@ -96,7 +99,7 @@ class InvMsg(NamedTuple):  # Convey blocks to a peer who is doing initial sync
             connect_block(block)
 
         new_tip_id = active_chain[-1].id
-        logger.info(f'[p2p] continuing initial block download at {new_tip_id}')
+        logger.info(f"[p2p] continuing initial block download at {new_tip_id}")
 
         with chain_lock:
             # "Recursive" call to continue the initial block sync.
@@ -126,9 +129,9 @@ class AddPeerMsg(NamedTuple):
 
 
 def read_all_from_socket(req) -> object:
-    data = b''
+    data = b""
     # Our protocol is: first 4 bytes signify msg length.
-    msg_len = int(binascii.hexlify(req.recv(4) or b'\x00'), 16)
+    msg_len = int(binascii.hexlify(req.recv(4) or b"\x00"), 16)
 
     while msg_len > 0:
         tdat = req.recv(1024)
@@ -150,7 +153,7 @@ def send_to_peer(data, peer=None):
             with socket.create_connection((peer, Config.PORT), timeout=1) as s:
                 s.sendall(encode_socket_data(data))
         except Exception:
-            logger.exception(f'failed to send to peer {peer}')
+            logger.exception(f"failed to send to peer {peer}")
             tries_left -= 1
             time.sleep(2)
         else:
@@ -160,7 +163,8 @@ def send_to_peer(data, peer=None):
     peer_hostnames = {x for x in peer_hostnames if x != peer}
 
 
-def int_to_8bytes(a: int) -> bytes: return binascii.unhexlify(f"{a:0{8}x}")
+def int_to_8bytes(a: int) -> bytes:
+    return binascii.unhexlify(f"{a:0{8}x}")
 
 
 def encode_socket_data(data: object) -> bytes:
@@ -175,9 +179,10 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 def serialize(obj) -> str:
     """NamedTuple-flavored serialization to JSON."""
+
     def contents_to_primitive(o):
-        if hasattr(o, '_asdict'):
-            o = {**o._asdict(), '_type': type(o).__name__}
+        if hasattr(o, "_asdict"):
+            o = {**o._asdict(), "_type": type(o).__name__}
         elif isinstance(o, (list, tuple)):
             return [contents_to_primitive(i) for i in o]
         elif isinstance(o, bytes):
@@ -192,7 +197,8 @@ def serialize(obj) -> str:
         return o
 
     return json.dumps(
-        contents_to_primitive(obj), sort_keys=True, separators=(',', ':'))
+        contents_to_primitive(obj), sort_keys=True, separators=(",", ":")
+    )
 
 
 def deserialize(serialized: str) -> object:
@@ -205,9 +211,10 @@ def deserialize(serialized: str) -> object:
         elif not isinstance(o, Mapping):
             return o
 
-        _type = gs[o.pop('_type', None)]
+        _type = gs[o.pop("_type", None)]
         bytes_keys = {
-            k for k, v in get_type_hints(_type).items() if v == bytes}
+            k for k, v in get_type_hints(_type).items() if v == bytes
+        }
 
         for k, v in o.items():
             o[k] = contents_to_objs(v)
@@ -221,19 +228,18 @@ def deserialize(serialized: str) -> object:
 
 
 class TCPHandler(socketserver.BaseRequestHandler):
-
     def handle(self):
         data = read_all_from_socket(self.request)
         peer_hostname = self.request.getpeername()[0]
         peer_hostnames.add(peer_hostname)
 
-        logger.info(f'received msg...')
+        logger.info(f"received msg...")
         if data[0:8] == Config.MAGIC_BYTES:
-            if data[8:32] == '74786e000000000000000000':
+            if data[8:32] == "74786e000000000000000000":
                 tx = deserialize_transaction("01" + data[32:])
                 mempool_db.set(tx[0].id, tx[0])
 
-            '''
+            """
             if hasattr(data, 'handle') and isinstance(data.handle, Callable):
                 logger.info(f'received msg {data} from peer {peer_hostname}')
                 data.handle(self.request, peer_hostname)
@@ -245,4 +251,4 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 logger.info(f"
                     received block {data.id} from peer {peer_hostname}")
                 connect_block(data)
-            '''
+            """

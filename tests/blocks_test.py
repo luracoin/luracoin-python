@@ -1,12 +1,12 @@
+import unittest
+
+from luracoin.blockchain import Block, OutPoint, Transaction, TxIn, TxOut
 from luracoin.blocks import next_blk_file, serialize_block
 from luracoin.search import blk_to_list, find_block_in_file
 from luracoin.serialize import deserialize_block
-from luracoin.blockchain import TxOut, TxIn, Transaction, OutPoint, Block
 from luracoin.transactions import build_message, build_p2pkh, build_script_sig
 from luracoin.wallet import bytes_to_signing_key
-
 from tests.blockchain_test import LuracoinTest
-import unittest
 
 
 class BlocksTest(LuracoinTest):
@@ -15,6 +15,9 @@ class BlocksTest(LuracoinTest):
     address1: str
     address2: str
     address3: str
+    tx2: Transaction
+    public_key1: str
+    public_key2: str
     private_key2: bytes
 
     def test_blk_to_list(self) -> None:

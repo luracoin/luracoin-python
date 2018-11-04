@@ -22,34 +22,41 @@ Options:
   -p, --port PORT      Port node is listening on (default: 9999)
 
 """
-import os
 import binascii
-import shutil
-import plyvel
-from .transactions import build_p2pkh, search_utxo, utxo_valid, utxo_value
-from docopt import docopt
-from .config import Config
-from .search import find_block_in_file
-from .blocks import serialize_block, recieve_block
-from .blockchain import Block, TxOut, TxIn, Transaction, OutPoint
-from .network import (
-    ThreadedTCPServer,
-    TCPHandler,
-    GetMempoolMsg,
-    encode_socket_data,
-    read_all_from_socket
-)
-from .wallet import get_wallet, address_to_pubkey, generate_new_keys
-from .pow import proof_of_work
-import threading
-import logging
-import socket
 import json
+import logging
+import os
+import shutil
+import socket
+import threading
 
+import plyvel
+from docopt import docopt
+
+from luracoin.blockchain import Block, OutPoint, Transaction, TxIn, TxOut
+from luracoin.blocks import recieve_block, serialize_block
+from luracoin.config import Config
+from luracoin.network import (
+    GetMempoolMsg,
+    TCPHandler,
+    ThreadedTCPServer,
+    encode_socket_data,
+    read_all_from_socket,
+)
+from luracoin.pow import proof_of_work
+from luracoin.search import find_block_in_file
+from luracoin.transactions import (
+    build_p2pkh,
+    search_utxo,
+    utxo_valid,
+    utxo_value,
+)
+from luracoin.wallet import address_to_pubkey, create_wallet, get_wallet
 
 logging.basicConfig(
-    level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
-    format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
+    level=getattr(logging, os.environ.get("TC_LOG_LEVEL", "INFO")),
+    format="[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 # =========================================================
@@ -67,55 +74,55 @@ ibd_done = None
 
 
 def main(args):
-    if args['getBlock']:
+    if args["getBlock"]:
         get_block(args)
-    elif args['startBlockchain']:
+    elif args["startBlockchain"]:
         start_blockchain(args)
-    elif args['start']:
+    elif args["start"]:
         start(args)
-    elif args['getMempool']:
+    elif args["getMempool"]:
         get_mempool(args)
-    elif args['sendTransaction']:
+    elif args["sendTransaction"]:
         send_transaction(args)
-    elif args['mine']:
+    elif args["mine"]:
         mine_forever()
-    elif args['getWallet']:
+    elif args["getWallet"]:
         getWallet()
-    elif args['tx']:
+    elif args["tx"]:
         tx()
-    elif args['getBlockchainInfo']:
+    elif args["getBlockchainInfo"]:
         getBlockchainInfo()
-    elif args['getChainstate']:
+    elif args["getChainstate"]:
         getChainstate()
-    elif args['generateKeys']:
+    elif args["generateKeys"]:
         generate_keys()
 
 
 def getChainstate() -> None:
-    db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
+    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
     info = {}
     for key, value in db:
         info[key.decode()] = value.decode()
 
-    info['size'] = len(info)
+    info["size"] = len(info)
     db.close()
     print(json.dumps(info, indent=4))
 
 
 def getBlockchainInfo() -> None:
-    db = plyvel.DB(Config.BLOCKS_DIR + 'index', create_if_missing=True)
+    db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
     key_values = {}
 
-    heigth = db.get(b'b')
-    blk_file = db.get(b'l')
+    heigth = db.get(b"b")
+    blk_file = db.get(b"l")
 
     for key, value in db:
         key_values[key.decode()] = value.decode()
 
     info = {
-        "heigth": heigth.decode('utf-8'),
-        "blk_file": blk_file.decode('utf-8'),
-        "database": key_values
+        "heigth": heigth.decode("utf-8"),
+        "blk_file": blk_file.decode("utf-8"),
+        "database": key_values,
     }
 
     db.close()
@@ -123,19 +130,19 @@ def getBlockchainInfo() -> None:
 
 
 def tx() -> None:
-    block = find_block_in_file(55, '000000')
+    block = find_block_in_file(55, "000000")
     print(block)
-    block = find_block_in_file(15787, '000000')
+    block = find_block_in_file(15787, "000000")
     print(block)
 
 
 def generate_keys() -> None:
-    address = generate_new_keys()
+    address = create_wallet()
     info = {
         "address": address[2],
         "verify": address[1].to_string().hex(),
         "pub_key": address_to_pubkey(address[2]),
-        "private_key": address[0]
+        "private_key": address[0],
     }
     print(info)
 
@@ -171,12 +178,12 @@ def getWallet() -> None:
 
 
 def get_block(args):
-    '''
+    """
     Example:
     > python client.py getBlock {BLOCK_HASH}
-    '''
-    db = plyvel.DB(Config.BLOCKS_DIR + 'index', create_if_missing=True)
-    result = db.get(b'b' + args['<block_hash>'].encode())
+    """
+    db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
+    result = db.get(b"b" + args["<block_hash>"].encode())
     print(result)
     db.close()
     return result
@@ -184,24 +191,27 @@ def get_block(args):
 
 def start(args) -> None:
     peer_hostnames = {
-        p for p in os.environ.get('TC_PEERS', '').split(',') if p
+        p for p in os.environ.get("TC_PEERS", "").split(",") if p
     }
-    PORT = os.environ.get('TC_PORT', 9999)
+    PORT = os.environ.get("TC_PORT", 9999)
     workers = []
-    server = ThreadedTCPServer(('0.0.0.0', PORT), TCPHandler)
+    server = ThreadedTCPServer(("0.0.0.0", PORT), TCPHandler)
 
     def start_worker(fnc):
         workers.append(threading.Thread(target=fnc, daemon=True))
         workers[-1].start()
 
-    logger.info(f'[p2p] listening on {PORT}')
+    logger.info(f"[p2p] listening on {PORT}")
     start_worker(server.serve_forever)
 
     if peer_hostnames:
         logger.info(
-            f'start initial block download from {len(peer_hostnames)} peers')
+            f"start initial block download from {len(peer_hostnames)} peers"
+        )
         send_to_peer(GetBlocksMsg(active_chain[-1].id))
-        ibd_done.wait(60.)  # Wait a maximum of 60 seconds for IBD to complete.
+        ibd_done.wait(
+            60.0
+        )  # Wait a maximum of 60 seconds for IBD to complete.
 
     start_worker(mine_forever)
     [w.join() for w in workers]
@@ -210,44 +220,39 @@ def start(args) -> None:
 def mine_forever() -> None:
 
     while True:
-        db = plyvel.DB(Config.BLOCKS_DIR + 'index', create_if_missing=True)
+        db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
         print("Minig...")
-        heigth = db.get(b'b')
-        blk_file = db.get(b'l')
+        heigth = db.get(b"b")
+        blk_file = db.get(b"l")
         db.close()
 
         last_block = find_block_in_file(
-            heigth.decode('utf-8'),
-            blk_file.decode('utf-8')
+            heigth.decode("utf-8"), blk_file.decode("utf-8")
         )
         proof = proof_of_work(last_block.id)
 
         tx_out = TxOut(
-            value=5000000000,
-            to_address=build_p2pkh('1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS')
+            value=5_000_000_000,
+            to_address=build_p2pkh("1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS"),
         )
         tx_in = TxIn(
             to_spend=OutPoint(0, -1),
             unlock_sig=str(int(heigth.decode()) + 1),
-            sequence=0
+            sequence=0,
         )
 
         tx = Transaction(
-            version=1,
-            txins=[tx_in],
-            txouts=[tx_out],
-            locktime=None
+            version=1, txins=[tx_in], txouts=[tx_out], locktime=None
         )
 
         genesis_block = Block(
             version=1,
             prev_block_hash=last_block.id,
-            timestamp=1501821412,
+            timestamp=1_501_821_412,
             bits=24,
             nonce=proof,
-            txns=[tx])
-
-        genesis_block.pretty_print()
+            txns=[tx],
+        )
 
         serialized_block = serialize_block(genesis_block)
 
@@ -261,24 +266,18 @@ def get_mempool(args) -> None:
 
 def send_transaction(args) -> None:
     tx_out = TxOut(
-        value=5000000000,
-        to_address="1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS"
+        value=5_000_000_000, to_address="1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS"
     )
-    tx_in = TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)
+    tx_in = TxIn(to_spend=OutPoint(0, -1), unlock_sig="0", sequence=0)
 
-    tx = Transaction(
-        version=1,
-        txins=[tx_in],
-        txouts=[tx_out],
-        locktime=None
-    )
+    tx = Transaction(version=1, txins=[tx_in], txouts=[tx_out], locktime=None)
 
     tx = tx.serialize_transaction()
 
-    logger.info(f'built txn {tx}')
+    logger.info(f"built txn {tx}")
 
     command = binascii.hexlify(str("txn").encode())
-    command = command.decode('utf-8').ljust(24, '0')
+    command = command.decode("utf-8").ljust(24, "0")
 
     msg = Config.MAGIC_BYTES + command + tx
 
@@ -286,35 +285,31 @@ def send_transaction(args) -> None:
 
 
 def start_blockchain(args) -> None:
-    '''
+    """
     Deletes all the data an initializes the new Blockchain.
     Example:
     > python client.py startBlockchain 1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS
-    '''
+    """
     folder = Config.DATA_DIR
     if os.path.exists(folder):
         shutil.rmtree(folder)
     os.makedirs(folder + "/blocks")
 
-    tx_out = TxOut(value=5000000000, to_address=build_p2pkh(args['<address>']))
-    tx_in = TxIn(to_spend=OutPoint(0, -1), unlock_sig='0', sequence=0)
-
-    tx = Transaction(
-        version=1,
-        txins=[tx_in],
-        txouts=[tx_out],
-        locktime=None
+    tx_out = TxOut(
+        value=5_000_000_000, to_address=build_p2pkh(args["<address>"])
     )
+    tx_in = TxIn(to_spend=OutPoint(0, -1), unlock_sig="0", sequence=0)
+
+    tx = Transaction(version=1, txins=[tx_in], txouts=[tx_out], locktime=None)
 
     genesis_block = Block(
         version=1,
         prev_block_hash=0,
-        timestamp=1501821412,
+        timestamp=1_501_821_412,
         bits=24,
-        nonce=10126761,
-        txns=[tx])
-
-    genesis_block.pretty_print()
+        nonce=10_126_761,
+        txns=[tx],
+    )
 
     serialized_block = serialize_block(genesis_block)
 
@@ -322,8 +317,8 @@ def start_blockchain(args) -> None:
 
 
 def send_msg(data: bytes, node_hostname=None, port=None) -> None:
-    node_hostname = getattr(send_msg, 'node_hostname', 'localhost')
-    port = getattr(send_msg, 'port', 9999)
+    node_hostname = getattr(send_msg, "node_hostname", "localhost")
+    port = getattr(send_msg, "port", 9999)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((node_hostname, port))
@@ -331,5 +326,5 @@ def send_msg(data: bytes, node_hostname=None, port=None) -> None:
         return read_all_from_socket(s)
 
 
-if __name__ == '__main__':
-    main(docopt(__doc__, version='luracoin client 0.1'))
+if __name__ == "__main__":
+    main(docopt(__doc__, version="luracoin client 0.1"))

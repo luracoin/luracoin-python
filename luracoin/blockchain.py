@@ -1,25 +1,24 @@
-from typing import Iterable, NamedTuple, Union
 import logging
-from .helpers import sha256d, var_int
 import os
-from .config import Config
+from typing import Iterable, NamedTuple, Union
 
+from .config import Config
+from .helpers import sha256d, var_int
 
 logging.basicConfig(
-    level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
-    format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
+    level=getattr(logging, os.environ.get("TC_LOG_LEVEL", "INFO")),
+    format="[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 
 # Used to represent the specific output within a transaction.
-OutPoint = NamedTuple('OutPoint', [
-    ('txid', str),
-    ('txout_idx', int)
-])
+OutPoint = NamedTuple("OutPoint", [("txid", str), ("txout_idx", int)])
 
 
 class TxIn(NamedTuple):
     """Inputs to a Transaction."""
+
     # A reference to the output we're spending. This is None for coinbase
     # transactions.
     to_spend: Union[OutPoint, None]
@@ -35,6 +34,7 @@ class TxIn(NamedTuple):
 
 class TxOut(NamedTuple):
     """Outputs from a Transaction."""
+
     # The number of Belushis this awards.
     value: int
 
@@ -57,7 +57,8 @@ class UnspentTxOut(NamedTuple):
     height: int
 
     @property
-    def outpoint(self): return OutPoint(self.txid, self.txout_idx)
+    def outpoint(self):
+        return OutPoint(self.txid, self.txout_idx)
 
 
 class Transaction(NamedTuple):
@@ -74,15 +75,19 @@ class Transaction(NamedTuple):
 
     @property
     def is_coinbase(self) -> bool:
-        return (
-            len(self.txins) == 1 and str(self.txins[0].to_spend.txid) == '0')
+        return len(self.txins) == 1 and str(self.txins[0].to_spend.txid) == "0"
 
     @property
     def id(self) -> str:
-        msg = ''
+        msg = ""
         for x in self.txins:
-            msg = msg + str(x.to_spend.txid) + str(x.to_spend.txout_idx) + \
-                str(x.unlock_sig) + str(x.sequence)
+            msg = (
+                msg
+                + str(x.to_spend.txid)
+                + str(x.to_spend.txout_idx)
+                + str(x.unlock_sig)
+                + str(x.sequence)
+            )
         for y in self.txouts:
             msg = msg + str(y.value) + str(y.to_address)
 
@@ -90,31 +95,45 @@ class Transaction(NamedTuple):
         return tx_id
 
     def make_msg(self):
-        '''
+        """
         TODO: Improve the message.
         bitcoin.stackexchange.com/questions/37093/what-goes-in-to-the-message-of-a-transaction-signature
-        '''
+        """
         return self.id
 
     def serialize_transaction(self):
-        total = ''
+        total = ""
         version = self.version.to_bytes(
-            2, byteorder='little', signed=False).hex()
+            2, byteorder="little", signed=False
+        ).hex()
 
         # INPUTS:
         num_inputs = len(self.txins)
         if num_inputs <= 252:
             num_inputs = num_inputs.to_bytes(
-                1, byteorder='little', signed=False).hex()
+                1, byteorder="little", signed=False
+            ).hex()
         elif num_inputs <= 65535:
-            num_inputs = "fd" + num_inputs.to_bytes(
-                2, byteorder='little', signed=False).hex()
+            num_inputs = (
+                "fd"
+                + num_inputs.to_bytes(
+                    2, byteorder="little", signed=False
+                ).hex()
+            )
         elif num_inputs <= 4294967295:
-            num_inputs = "fe" + num_inputs.to_bytes(
-                4, byteorder='little', signed=False).hex()
+            num_inputs = (
+                "fe"
+                + num_inputs.to_bytes(
+                    4, byteorder="little", signed=False
+                ).hex()
+            )
         else:
-            num_inputs = "ff" + num_inputs.to_bytes(
-                8, byteorder='little', signed=False).hex()
+            num_inputs = (
+                "ff"
+                + num_inputs.to_bytes(
+                    8, byteorder="little", signed=False
+                ).hex()
+            )
 
         total = version + num_inputs
 
@@ -126,24 +145,32 @@ class Transaction(NamedTuple):
 
             # Output to spent
             if i.to_spend.txout_idx == -1:
-                vout = 'ffffffff'  # Index. ffffffff for Coinbase
+                vout = "ffffffff"  # Index. ffffffff for Coinbase
             else:
                 vout = i.to_spend.txout_idx.to_bytes(
-                    4, byteorder='little', signed=False).hex()
+                    4, byteorder="little", signed=False
+                ).hex()
 
             script_sig = i.unlock_sig
             script_sig_size = var_int(len(script_sig))  # VarInt
             sequence = i.sequence.to_bytes(
-                4, byteorder='little', signed=False).hex()
-            total = total + str(tx_id) + vout + str(script_sig_size) + \
-                script_sig + sequence
+                4, byteorder="little", signed=False
+            ).hex()
+            total = (
+                total
+                + str(tx_id)
+                + vout
+                + str(script_sig_size)
+                + script_sig
+                + sequence
+            )
 
         # OUTPUTS:
         num_outputs = len(self.txouts)
         total = total + var_int(num_outputs)
 
         for o in self.txouts:
-            value = o.value.to_bytes(8, byteorder='little', signed=False).hex()
+            value = o.value.to_bytes(8, byteorder="little", signed=False).hex()
             script_pub_key = o.to_address
             script_pub_key_size = var_int(len(script_pub_key))
             total = total + value + script_pub_key_size + script_pub_key
@@ -172,34 +199,20 @@ class Block(NamedTuple):
     # Transaction list
     txns: list
 
-    def pretty_print(self) -> None:
-        print("===========\n")
-        print("Version: " + str(self.version))
-        print("Hash: " + self.id)
-        if self.prev_block_hash != 0:
-            print("Prev Hash: " + str(self.prev_block_hash))
-        else:
-            print("Prev Hash: - ")
-        print("Timestamp: " + str(self.timestamp))
-        print("Bits: " + str(self.bits))
-        print("Nonce: " + str(self.nonce))
-        print("Transactions: ")
-        for t in self.txns:
-            print("\tID: " + str(t.id))
-            print("\tCoinbase: " + str(t.is_coinbase))
-            print("\tTxouts: " + str(t.txouts))
-            print("\tTxins: " + str(t.txins))
-            print("\n")
-        print("===========\n")
-
     @property
     def id(self) -> str:
-        txns_ids = ''
+        txns_ids = ""
         for t in self.txns:
             txns_ids = txns_ids + t.id
 
-        string_to_hash = str(self.version) + str(self.prev_block_hash) + str(
-            self.timestamp) + str(self.bits) + str(self.nonce) + str(txns_ids)
+        string_to_hash = (
+            str(self.version)
+            + str(self.prev_block_hash)
+            + str(self.timestamp)
+            + str(self.bits)
+            + str(self.nonce)
+            + str(txns_ids)
+        )
 
         block_id = sha256d(string_to_hash)
         return block_id

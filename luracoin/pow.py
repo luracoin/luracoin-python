@@ -1,5 +1,7 @@
 import hashlib
 
+from .blockchain import Block
+
 
 def proof_of_work(last_proof: str) -> str:
     """
@@ -21,7 +23,7 @@ def proof_of_work(last_proof: str) -> str:
     return proof
 
 
-def valid_proof(last_proof: str, proof: str) -> str:
+def valid_proof(last_proof: int, proof: str) -> bool:
     """
     Validates the Proof
 
@@ -39,5 +41,5 @@ def validate_pow(block: Block) -> bool:
     return True
 
 
-def mining_reward():
+def mining_reward() -> int:
     return 50

@@ -2,7 +2,7 @@ from .config import Config
 from .serialize import deserialize_block
 
 
-def blk_to_list(blk_number: str, raw: bool=False) -> list:
+def blk_to_list(blk_number: str, raw: bool = False) -> list:
     """
     Get the contents of a blk file and create a list with all blocks within.
 
@@ -10,7 +10,7 @@ def blk_to_list(blk_number: str, raw: bool=False) -> list:
     :return: <List>
     """
     try:
-        f = open(Config.BLOCKS_DIR + "blk" + blk_number + ".dat", 'r')
+        f = open(Config.BLOCKS_DIR + "blk" + blk_number + ".dat", "r")
         contents = f.read()
         f.close()
         block_list = contents.split(Config.MAGIC_BYTES)

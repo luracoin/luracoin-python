@@ -1,16 +1,19 @@
-import logging
-from .config import Config
-import os
-from .helpers import sha256d, get_current_height
-from .wallet import address_to_pubkey
-from .pow import mining_reward
 import binascii
+import logging
+import os
+
 import plyvel
 
+from .blockchain import Transaction
+from .config import Config
+from .helpers import get_current_height, sha256d
+from .pow import mining_reward
+from .wallet import address_to_pubkey
 
 logging.basicConfig(
-    level=getattr(logging, os.environ.get('TC_LOG_LEVEL', 'INFO')),
-    format='[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s')
+    level=getattr(logging, os.environ.get("TC_LOG_LEVEL", "INFO")),
+    format="[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -31,9 +34,8 @@ def validate_tx(tx: Transaction):
     for to in tx.txouts:
         total_value = total_value + to.value
 
-    if (
-        tx.is_coinbase
-        and total_value > (mining_reward() * Config.BELUSHIS_PER_COIN)
+    if tx.is_coinbase and total_value > (
+        mining_reward() * Config.BELUSHIS_PER_COIN
     ):
         return False
 
@@ -59,24 +61,25 @@ def validate_signature(tx_input):
     # [PUB_KEY][SIGNATURE]<DUP><HASH160>[ADDRESS]<EQUALVERIFY><CHECKSIG>
 
     # Get the unlocking script.
-    db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
+    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
     try:
         tx_info = read_tx_from_chainstate(
             tx=db.get(
-                    b'c' + tx_input.to_spend.txid.encode() +
-                    str(tx_input.to_spend.txout_idx).encode()
-                ).decode()
+                b"c"
+                + tx_input.to_spend.txid.encode()
+                + str(tx_input.to_spend.txout_idx).encode()
+            ).decode()
         )
     except AttributeError:
         return False
     finally:
         db.close()
 
-    unlocking_script = tx_info['output'][16:]
+    unlocking_script = tx_info["output"][16:]
 
     acum = 0
     while acum < len(unlocking_script):
-        print(unlocking_script[acum:acum+2])
+        print(unlocking_script[acum : acum + 2])
         acum += 2
 
     # print("\n===============")
@@ -96,11 +99,15 @@ def build_script_sig(signature: str, pub_key: str) -> str:
     <VARINT>SIGNATURE<VARINT>PUBLIC_KEY
     """
     count_signature = len(signature) / 2
-    count_signature = int(count_signature).to_bytes(
-        1, byteorder='little', signed=False).hex()
+    count_signature = (
+        int(count_signature)
+        .to_bytes(1, byteorder="little", signed=False)
+        .hex()
+    )
     count_pub_key = len(pub_key) / 2
-    count_pub_key = int(count_pub_key).to_bytes(
-        1, byteorder='little', signed=False).hex()
+    count_pub_key = (
+        int(count_pub_key).to_bytes(1, byteorder="little", signed=False).hex()
+    )
     return str(count_signature) + signature + str(count_pub_key) + pub_key
 
 
@@ -126,8 +133,9 @@ def build_p2pkh(address: str):
     """
     pub_key_hash = address_to_pubkey(address)
     count_push = len(pub_key_hash) / 2
-    count_push = int(count_push).to_bytes(
-        1, byteorder='little', signed=False).hex()
+    count_push = (
+        int(count_push).to_bytes(1, byteorder="little", signed=False).hex()
+    )
 
     # "<OP_DUP><OP_HASH160>len_push pub_key<OP_EQUALVERIFY><OP_CHECKSIG>"
     script = "76a9" + count_push + pub_key_hash + "88ac"
@@ -144,7 +152,7 @@ def search_utxo(address: str):
     pub_key = address_to_pubkey(address)
     utxo = {}
 
-    db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
+    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
     for key, value in db:
         if pub_key in value.decode():
             utxo[key.decode()] = value.decode()
@@ -165,15 +173,15 @@ def utxo_valid(tx_id: str, vout: int):
     """
     valid = True
 
-    db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
+    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
     tx_info = read_tx_from_chainstate(
-        tx=db.get(b'c' + tx_id.encode() + str(vout).encode()).decode()
+        tx=db.get(b"c" + tx_id.encode() + str(vout).encode()).decode()
     )
     db.close()
 
     if (
-        tx_info['coinbase'] == 1
-        and tx_info['height'] > get_current_height() - 50
+        tx_info["coinbase"] == 1
+        and tx_info["height"] > get_current_height() - 50
     ):
         valid = False
 
@@ -181,14 +189,15 @@ def utxo_valid(tx_id: str, vout: int):
 
 
 def utxo_value(tx_id: str, vout: int):
-    db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
+    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
     tx_info = read_tx_from_chainstate(
-        tx=db.get(b'c' + tx_id.encode() + str(vout).encode()).decode()
+        tx=db.get(b"c" + tx_id.encode() + str(vout).encode()).decode()
     )
     db.close()
 
     return int.from_bytes(
-        binascii.unhexlify(tx_info['output'][:16]), byteorder='little')
+        binascii.unhexlify(tx_info["output"][:16]), byteorder="little"
+    )
 
 
 def remove_tx_from_chainstate(tx: str, vout: int) -> None:
@@ -198,8 +207,8 @@ def remove_tx_from_chainstate(tx: str, vout: int) -> None:
     :param tx: Transaction ID
     :param vout: Which output
     """
-    db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
-    db.delete(b'c' + tx.encode() + str(vout).encode())
+    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
+    db.delete(b"c" + tx.encode() + str(vout).encode())
     db.close()
 
 
@@ -228,38 +237,46 @@ def add_tx_to_chainstate(tx, height: int):
     """
     for i, o in enumerate(tx.txouts):
         version = tx.version.to_bytes(
-            1, byteorder='little', signed=False).hex()
+            1, byteorder="little", signed=False
+        ).hex()
         coinbase = tx.is_coinbase
         if coinbase:
-            coinbase = int(1).to_bytes(
-                1, byteorder='little', signed=False).hex()
+            coinbase = (
+                int(1).to_bytes(1, byteorder="little", signed=False).hex()
+            )
         else:
-            coinbase = int(0).to_bytes(
-                1, byteorder='little', signed=False).hex()
-        h = int(height).to_bytes(4, byteorder='little', signed=False).hex()
-        output_content = o.value.to_bytes(
-            8, byteorder='little', signed=False).hex() + o.to_address
+            coinbase = (
+                int(0).to_bytes(1, byteorder="little", signed=False).hex()
+            )
+        h = int(height).to_bytes(4, byteorder="little", signed=False).hex()
+        output_content = (
+            o.value.to_bytes(8, byteorder="little", signed=False).hex()
+            + o.to_address
+        )
 
         outputs = version + coinbase + h + output_content
 
-        db = plyvel.DB(Config.DATA_DIR + 'chainstate', create_if_missing=True)
-        db.put(b'c' + tx.id.encode() + str(i).encode(), outputs.encode())
+        db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
+        db.put(b"c" + tx.id.encode() + str(i).encode(), outputs.encode())
         db.close()
 
 
-def read_tx_from_chainstate(tx: str) -> Dict:
+def read_tx_from_chainstate(tx: str) -> dict:
     """
     Read a transaction from the LevelDB Chainstate. And returns a Dictionary
     with all the information.
     """
     tx_info = {
-        'version': int.from_bytes(
-            binascii.unhexlify(tx[0:2]), byteorder='little'),
-        'coinbase': int.from_bytes(
-            binascii.unhexlify(tx[2:4]), byteorder='little'),
-        'height': int.from_bytes(
-            binascii.unhexlify(tx[4:12]), byteorder='little'),
-        'output': tx[12:]
+        "version": int.from_bytes(
+            binascii.unhexlify(tx[0:2]), byteorder="little"
+        ),
+        "coinbase": int.from_bytes(
+            binascii.unhexlify(tx[2:4]), byteorder="little"
+        ),
+        "height": int.from_bytes(
+            binascii.unhexlify(tx[4:12]), byteorder="little"
+        ),
+        "output": tx[12:],
     }
 
     # print(json.dumps(tx_info, indent=4))
