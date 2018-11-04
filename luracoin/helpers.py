@@ -24,7 +24,7 @@ def var_int(num: int) -> str:
         num = num.to_bytes(1, byteorder="little", signed=False).hex()
     elif num <= 65535:
         num = "fd" + num.to_bytes(2, byteorder="little", signed=False).hex()
-    elif num <= 4294967295:
+    elif num <= 4_294_967_295:
         num = "fe" + num.to_bytes(4, byteorder="little", signed=False).hex()
     else:
         num = "ff" + num.to_bytes(8, byteorder="little", signed=False).hex()

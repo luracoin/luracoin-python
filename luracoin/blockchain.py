@@ -120,7 +120,7 @@ class Transaction(NamedTuple):
                     2, byteorder="little", signed=False
                 ).hex()
             )
-        elif num_inputs <= 4294967295:
+        elif num_inputs <= 4_294_967_295:
             num_inputs = (
                 "fe"
                 + num_inputs.to_bytes(

@@ -40,7 +40,7 @@ def validate_tx(tx: Transaction):
         return False
 
     if not tx.is_coinbase:
-        total_to_spend = 9999999999999
+        total_to_spend = 9_999_999_999_999
         for ti in tx.txins:
             total_to_spend = total_to_spend + 0
 
