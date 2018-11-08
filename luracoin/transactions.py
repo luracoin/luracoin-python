@@ -1,283 +1,149 @@
-import binascii
-import logging
-import os
+from typing import List, NamedTuple, Union
+from luracoin.helpers import sha256d, var_int, little_endian, mining_reward
+from luracoin.config import Config
 
-import plyvel
-
-from .blockchain import Transaction
-from .config import Config
-from .helpers import get_current_height, sha256d
-from .pow import mining_reward
-from .wallet import address_to_pubkey
-
-logging.basicConfig(
-    level=getattr(logging, os.environ.get("TC_LOG_LEVEL", "INFO")),
-    format="[%(asctime)s][%(module)s:%(lineno)d] %(levelname)s %(message)s",
-)
-logger = logging.getLogger(__name__)
+# Used to represent the specific output within a transaction.
+OutPoint = NamedTuple("OutPoint", [("txid", str), ("txout_idx", int)])
 
 
-def validate_tx(tx: Transaction):
-    """
-    Validate a transaction. For a transaction to be valid it has to follow
-    hese conditions:
+class TxIn(NamedTuple):
+    """Inputs to a Transaction."""
 
-    - Value is less than the total supply.
-    - Tx size is less than the block size limit.
-    - Value has to be equal or less than the spending transaction
-    - Valid unlocking code
-    """
-    if not tx.txins or not tx.txouts:
-        return False
+    # A reference to the output we're spending. This is None for coinbase
+    # transactions.
+    to_spend: Union[OutPoint, None]
 
-    total_value = 0
-    for to in tx.txouts:
-        total_value = total_value + to.value
+    # The (signature, pubkey) pair which unlocks the TxOut for spending.
+    unlock_sig: str
+    # unlock_pk: bytes
 
-    if tx.is_coinbase and total_value > (
-        mining_reward() * Config.BELUSHIS_PER_COIN
-    ):
-        return False
+    # A sender-defined sequence number which allows us replacement of the txn
+    # if desired.
+    sequence: int
 
-    if not tx.is_coinbase:
-        total_to_spend = 9_999_999_999_999
-        for ti in tx.txins:
-            total_to_spend = total_to_spend + 0
+    def serialize(self) -> str:
+        tx_id = self.to_spend.txid
 
-        if total_value > Config.MAX_MONEY:
-            return False
+        if self.to_spend.txid == 0:
+            tx_id = Config.COINBASE_TX_ID
 
-        if total_value > total_to_spend:
-            return False
-
-        # VALIDATE SIGNATURE HERE
-
-    return True
-
-
-def validate_signature(tx_input):
-    # WIP
-    # P2PKH:
-    # [PUB_KEY][SIGNATURE]<DUP><HASH160>[ADDRESS]<EQUALVERIFY><CHECKSIG>
-
-    # Get the unlocking script.
-    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
-    try:
-        tx_info = read_tx_from_chainstate(
-            tx=db.get(
-                b"c"
-                + tx_input.to_spend.txid.encode()
-                + str(tx_input.to_spend.txout_idx).encode()
-            ).decode()
-        )
-    except AttributeError:
-        return False
-    finally:
-        db.close()
-
-    unlocking_script = tx_info["output"][16:]
-
-    acum = 0
-    while acum < len(unlocking_script):
-        print(unlocking_script[acum : acum + 2])
-        acum += 2
-
-    # print("\n===============")
-    # print(unlocking_script)
-    # print("===============\n")
-
-
-def build_message(to_spend: int, pub_key: str) -> str:
-    """
-    TODO: INSECURE, HAS TO BE IMPROVE
-    """
-    return sha256d(str(to_spend.txid) + str(to_spend.txout_idx) + pub_key)
-
-
-def build_script_sig(signature: str, pub_key: str) -> str:
-    """
-    <VARINT>SIGNATURE<VARINT>PUBLIC_KEY
-    """
-    count_signature = len(signature) / 2
-    count_signature = (
-        int(count_signature)
-        .to_bytes(1, byteorder="little", signed=False)
-        .hex()
-    )
-    count_pub_key = len(pub_key) / 2
-    count_pub_key = (
-        int(count_pub_key).to_bytes(1, byteorder="little", signed=False).hex()
-    )
-    return str(count_signature) + signature + str(count_pub_key) + pub_key
-
-
-def build_p2pkh(address: str):
-    """
-    We have to provide a signature and the original Public Key.
-    <OP_DUP>: (0x76) pushes a copy of the topmost stack item on to the stack.
-    <OP_HASH160>: (0xa9) consumes the topmost item on the stack, computes the
-        RIPEMD160(SHA256()) hash of that item, and pushes that hash onto the
-        stack.
-    <OP_EQUAL>: (0x87) consumes the top two items on the stack, compares them,
-        and pushes true onto the stack if they are the same, false if not.
-    <OP_VERIFY>: (0x69) consumes the topmost item on the stack. If that item
-        is zero (false) it terminates the script in failure.
-    <OP_EQUALVERIFY>: (0x88) runs OP_EQUAL and then OP_VERIFY in sequence.
-    <OP_CHECKSIG>: (0xac) consumes a signature and a full public key, and
-        pushes true onto the stack if the transaction data specified by the
-        SIGHASH flag was converted into the signature using the same ECDSA
-        private key that generated the public key. Otherwise, it pushes false
-        onto the stack.
-
-    If the byte is < 0x4b (75) it means that is data to push into the STACK
-    """
-    pub_key_hash = address_to_pubkey(address)
-    count_push = len(pub_key_hash) / 2
-    count_push = (
-        int(count_push).to_bytes(1, byteorder="little", signed=False).hex()
-    )
-
-    # "<OP_DUP><OP_HASH160>len_push pub_key<OP_EQUALVERIFY><OP_CHECKSIG>"
-    script = "76a9" + count_push + pub_key_hash + "88ac"
-    return script
-
-
-def search_utxo(address: str):
-    """
-    Search all available UTXO of an address:
-
-    :param address: Luracoin Address
-    :return: List with all UTXO
-    """
-    pub_key = address_to_pubkey(address)
-    utxo = {}
-
-    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
-    for key, value in db:
-        if pub_key in value.decode():
-            utxo[key.decode()] = value.decode()
-
-    db.close()
-    return utxo
-
-
-def utxo_valid(tx_id: str, vout: int):
-    """
-    Checks if a UTXO is valid to spend. For now the only reason a UTXO is
-    invalid would be because it's a coinbase transactions and it was created
-    less than 50 blocks ago.
-
-    :param tx_id: Transaction ID
-    :param vout: Number of output
-    :return: Boolean
-    """
-    valid = True
-
-    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
-    tx_info = read_tx_from_chainstate(
-        tx=db.get(b"c" + tx_id.encode() + str(vout).encode()).decode()
-    )
-    db.close()
-
-    if (
-        tx_info["coinbase"] == 1
-        and tx_info["height"] > get_current_height() - 50
-    ):
-        valid = False
-
-    return valid
-
-
-def utxo_value(tx_id: str, vout: int):
-    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
-    tx_info = read_tx_from_chainstate(
-        tx=db.get(b"c" + tx_id.encode() + str(vout).encode()).decode()
-    )
-    db.close()
-
-    return int.from_bytes(
-        binascii.unhexlify(tx_info["output"][:16]), byteorder="little"
-    )
-
-
-def remove_tx_from_chainstate(tx: str, vout: int) -> None:
-    """
-    Remove UTXO from the chainstate.
-
-    :param tx: Transaction ID
-    :param vout: Which output
-    """
-    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
-    db.delete(b"c" + tx.encode() + str(vout).encode())
-    db.close()
-
-
-def add_tx_to_chainstate(tx, height: int):
-    """
-    Add a transaction to the chainstate. Inside the chainstate database, the
-    following key/value pairs are stored:
-
-    'c' + 32-byte transaction hash -> unspent transaction output record for
-    that transaction. These records are only present for transactions that
-    have at least one unspent output left.
-
-    Each record stores:
-        The version of the transaction.
-        Whether the transaction was a coinbase or not.
-        Which height block contains the transaction.
-        Which outputs of that transaction are unspent.
-        The scriptPubKey and amount for those unspent outputs.
-
-        [TX VERSION][COINBASE][HEIGHT][NUM OUTPUTS][∞][OUTPUT LENGHT][OUTPUT]
-             ^          ^        ^            ^                 ^
-           4 bytes   1 byte   4 bytes       VARINT            VARINT
-
-    'B' -> 32-byte block hash: the block hash up to which the database
-    represents the unspent transaction outputs
-    """
-    for i, o in enumerate(tx.txouts):
-        version = tx.version.to_bytes(
-            1, byteorder="little", signed=False
-        ).hex()
-        coinbase = tx.is_coinbase
-        if coinbase:
-            coinbase = (
-                int(1).to_bytes(1, byteorder="little", signed=False).hex()
-            )
+        if self.to_spend.txout_idx == -1:
+            vout = Config.COINBASE_TX_INDEX
         else:
-            coinbase = (
-                int(0).to_bytes(1, byteorder="little", signed=False).hex()
-            )
-        h = int(height).to_bytes(4, byteorder="little", signed=False).hex()
-        output_content = (
-            o.value.to_bytes(8, byteorder="little", signed=False).hex()
-            + o.to_address
+            vout = little_endian(num_bytes=4, data=self.to_spend.txout_idx)
+
+        script_sig = self.unlock_sig
+        script_sig_size = var_int(len(script_sig))
+
+        sequence = little_endian(num_bytes=4, data=self.sequence)
+
+        total = (
+            str(tx_id) + vout + str(script_sig_size) + script_sig + sequence
         )
 
-        outputs = version + coinbase + h + output_content
+        return total
 
-        db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
-        db.put(b"c" + tx.id.encode() + str(i).encode(), outputs.encode())
-        db.close()
+    def deserialize(self) -> None:
+        pass
 
 
-def read_tx_from_chainstate(tx: str) -> dict:
-    """
-    Read a transaction from the LevelDB Chainstate. And returns a Dictionary
-    with all the information.
-    """
-    tx_info = {
-        "version": int.from_bytes(
-            binascii.unhexlify(tx[0:2]), byteorder="little"
-        ),
-        "coinbase": int.from_bytes(
-            binascii.unhexlify(tx[2:4]), byteorder="little"
-        ),
-        "height": int.from_bytes(
-            binascii.unhexlify(tx[4:12]), byteorder="little"
-        ),
-        "output": tx[12:],
-    }
+class TxOut(NamedTuple):
+    """Outputs from a Transaction."""
 
-    # print(json.dumps(tx_info, indent=4))
-    return tx_info
+    # The number of Belushis this awards.
+    value: int
+
+    # The public key of the owner of this Txn.
+    to_address: str
+
+    def serialize(self) -> str:
+        value = little_endian(num_bytes=8, data=self.value)
+        script_pub_key = self.to_address
+        script_pub_key_size = var_int(len(script_pub_key))
+        return value + script_pub_key_size + script_pub_key
+
+    def deserialize(self) -> None:
+        pass
+
+
+class Transaction(NamedTuple):
+    version: int
+    txins: List[TxIn]
+    txouts: List[TxOut]
+
+    # The block number or timestamp at which this transaction is unlocked.
+    # < 500000000: Block number at which this transaction is unlocked.
+    # >= 500000000: UNIX timestamp at which this transaction is unlocked.
+    locktime: int = 0
+
+    @property
+    def is_coinbase(self) -> bool:
+        return len(self.txins) == 1 and str(self.txins[0].to_spend.txid) == "0"
+
+    @property
+    def id(self) -> str:
+        """
+        The ID will be the hash SHA256 of all the txins and txouts.
+        """
+        msg = ""
+        for x in self.txins:
+            msg = (
+                msg
+                + str(x.to_spend.txid)
+                + str(x.to_spend.txout_idx)
+                + str(x.unlock_sig)
+                + str(x.sequence)
+            )
+        for y in self.txouts:
+            msg = msg + str(y.value) + str(y.to_address)
+
+        tx_id = sha256d(msg)
+        return tx_id
+
+    def make_msg(self) -> str:
+        """
+        TODO: Improve the message.
+        bitcoin.stackexchange.com/questions/37093/what-goes-in-to-the-message-of-a-transaction-signature
+        """
+        return self.id
+
+    def serialize(self) -> str:
+        serialized_tx = little_endian(num_bytes=2, data=self.version)
+
+        # INPUTS:
+        serialized_tx += var_int(len(self.txins))
+
+        for txin in self.txins:
+            serialized_tx += txin.serialize()
+
+        # OUTPUTS:
+        serialized_tx += var_int(len(self.txouts))
+
+        for txout in self.txouts:
+            serialized_tx += txout.serialize()
+
+        return serialized_tx
+
+    def validate(self) -> bool:
+        """
+        Validate a transaction. For a transaction to be valid it has to follow
+        hese conditions:
+
+        - Value is less than the total supply.
+        - Tx size is less than the block size limit.
+        - Value has to be equal or less than the spending transaction
+        - Valid unlocking code
+        """
+        if not self.txins or not self.txouts:
+            return False
+
+        total_value = 0
+        for to in self.txouts:
+            total_value = total_value + to.value
+
+        if self.is_coinbase and total_value > (
+            mining_reward() * Config.BELUSHIS_PER_COIN
+        ):
+            return False
+
+        return True

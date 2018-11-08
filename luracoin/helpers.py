@@ -1,10 +1,5 @@
 import hashlib
-import os
-from typing import Iterable, Union
-
-import plyvel
-
-from .config import Config
+from typing import Union
 
 
 def sha256d(s: Union[str, bytes]) -> str:
@@ -15,38 +10,27 @@ def sha256d(s: Union[str, bytes]) -> str:
     return hashlib.sha256(hashlib.sha256(s).digest()).hexdigest()
 
 
-def _chunks(l, n) -> Iterable[Iterable]:
-    return (l[i : i + n] for i in range(0, len(l), n))
+def little_endian(num_bytes: int, data: int) -> str:
+    return data.to_bytes(num_bytes, byteorder="little", signed=False).hex()
 
 
 def var_int(num: int) -> str:
+    """
+    A VarInt (variable integer) is a field used in serialized data to
+    indicate the number of upcoming fields, or the length of an upcoming
+    field.
+    """
     if num <= 252:
-        num = num.to_bytes(1, byteorder="little", signed=False).hex()
+        result = little_endian(num_bytes=1, data=num)
     elif num <= 65535:
-        num = "fd" + num.to_bytes(2, byteorder="little", signed=False).hex()
+        result = "fd" + little_endian(num_bytes=2, data=num)
     elif num <= 4_294_967_295:
-        num = "fe" + num.to_bytes(4, byteorder="little", signed=False).hex()
+        result = "fe" + little_endian(num_bytes=4, data=num)
     else:
-        num = "ff" + num.to_bytes(8, byteorder="little", signed=False).hex()
+        result = "ff" + little_endian(num_bytes=8, data=num)
 
-    return num
-
-
-def deserialize_var_int():
-    return 0
+    return result
 
 
-def get_blk_file_size(file_name: str) -> int:
-    path = Config.BLOCKS_DIR + file_name
-    try:
-        return os.path.getsize(path)
-    except FileNotFoundError:
-        return 0
-
-
-def get_current_height():
-    db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
-    heigth = db.get(b"b")
-    db.close()
-
-    return int(heigth.decode())
+def mining_reward() -> int:
+    return 50
