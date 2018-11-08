@@ -2,7 +2,7 @@ from luracoin.transactions import Transaction, TxIn, TxOut, OutPoint
 from luracoin.wallet import build_p2pkh
 
 
-def test_transaction_serialize(transaction1):
+def test_transaction_serialize(transaction1):  # type: ignore
     assert transaction1.serialize() == (
         "01000100000000000000000000000000000000000000000000000000000000000000"
         "00ffffffff0100000000003005ed0b2000000003476a9150087a6532f90c45ef5cfd"
@@ -12,19 +12,19 @@ def test_transaction_serialize(transaction1):
     )
 
 
-def test_transaction_id(transaction1):
+def test_transaction_id(transaction1):  # type: ignore
     assert (
         transaction1.id
         == "c2821034a332fad997e38281f8d9d6ac765171ac41f9c761f9d0cc54e02a17ee"
     )
 
 
-def test_transaction_is_coinbase(transaction1, transaction2):
+def test_transaction_is_coinbase(transaction1, transaction2):  # type: ignore
     assert transaction1.is_coinbase is True
     assert transaction2.is_coinbase is False
 
 
-def test_transaction_validate(transaction1, transaction2):
+def test_transaction_validate(transaction1, transaction2):  # type: ignore
     assert transaction1.validate() is True
     assert transaction2.validate() is True
 

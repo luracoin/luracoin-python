@@ -1,7 +1,7 @@
 from luracoin.helpers import var_int, little_endian
 
 
-def test_var_int():
+def test_var_int() -> None:
     assert var_int(252) == "fc"
     assert var_int(1276) == "fdfc04"
     assert var_int(10276) == "fd2428"
@@ -11,7 +11,7 @@ def test_var_int():
     assert var_int(5_000_000_000) == "ff00f2052a01000000"
 
 
-def test_little_endian():
+def test_little_endian() -> None:
     assert little_endian(num_bytes=5, data=15) == "0f00000000"
     assert little_endian(num_bytes=4, data=15) == "0f000000"
     assert little_endian(num_bytes=3, data=15) == "0f0000"
@@ -19,6 +19,6 @@ def test_little_endian():
     assert little_endian(num_bytes=1, data=19) == "13"
 
 
-def test_sha256d():
+def test_sha256d() -> None:
     # TODO: Test for sha256d
     pass
