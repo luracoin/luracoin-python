@@ -3,7 +3,12 @@ from luracoin.helpers import sha256d, var_int, little_endian, mining_reward
 from luracoin.config import Config
 
 # Used to represent the specific output within a transaction.
-OutPoint = NamedTuple("OutPoint", [("txid", str), ("txout_idx", int)])
+OutPoint = NamedTuple(
+    "OutPoint", [
+        ("txid", Union[str, int]),
+        ("txout_idx", int)
+    ]
+)
 
 
 class TxIn(NamedTuple):
