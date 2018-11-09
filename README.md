@@ -8,37 +8,6 @@ Luracoin Python implementation.
 ## Status
 Early development. The blockchain is not live yet.
 
-## TODO:
-- Transactions
-	- Validate transaction
-		- TXIN / TXOUT not empty
-		- Max Block size
-		- Max money supply
-		- Script unlock and validate it
-- Add more tests
-- Mining
-	- Get transactions from the mempool
-	- Validate transactions and block
-	- Difficulty
-- Validate block
-	- Do not repeat blocks
-	- Max Block size
-	- Nonce
-	- Hash
-	- Coinbase transaction
-	- Transactions inside
-	- Timestamp
-- RPC
-- Initial Block Download
-- Validate chain and resolve conflicts.
-- Peer "discovery" / DNS Seeds
-- Replace by fee.
-- Work with Bytes and Binary instead of Text.
-- Choose where to save the data and config folder.
-- Add Multisig and other Script OP_CODES.
-- Merkle Tree.
-- Basic GUI wallet for iOS/Windows/Linux.
-
 
 ## FAQ
 #### Why python?
