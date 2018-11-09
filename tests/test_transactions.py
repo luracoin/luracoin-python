@@ -13,9 +13,8 @@ def test_transaction_serialize(transaction1):  # type: ignore
 
 
 def test_transaction_id(transaction1):  # type: ignore
-    assert (
-        transaction1.id
-        == "c2821034a332fad997e38281f8d9d6ac765171ac41f9c761f9d0cc54e02a17ee"
+    assert transaction1.id == (
+        "c2821034a332fad997e38281f8d9d6ac765171ac41f9c761f9d0cc54e02a17ee"
     )
 
 

@@ -1,5 +1,6 @@
 import hashlib
 from typing import Union
+import binascii
 
 
 def sha256d(s: Union[str, bytes]) -> str:
@@ -12,6 +13,12 @@ def sha256d(s: Union[str, bytes]) -> str:
 
 def little_endian(num_bytes: int, data: int) -> str:
     return data.to_bytes(num_bytes, byteorder="little", signed=False).hex()
+
+
+def little_endian_to_int(little_endian_bytes: str) -> int:
+    return int.from_bytes(
+        binascii.unhexlify(little_endian_bytes), byteorder="little"
+    )
 
 
 def var_int(num: int) -> str:
@@ -30,6 +37,16 @@ def var_int(num: int) -> str:
         result = "ff" + little_endian(num_bytes=8, data=num)
 
     return result
+
+
+def var_int_to_bytes(two_first_bytes: str) -> int:
+    if two_first_bytes == "ff":
+        return 8
+    elif two_first_bytes == "fe":
+        return 4
+    elif two_first_bytes == "fd":
+        return 2
+    return 1
 
 
 def mining_reward() -> int:

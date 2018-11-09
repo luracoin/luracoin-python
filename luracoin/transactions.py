@@ -4,10 +4,7 @@ from luracoin.config import Config
 
 # Used to represent the specific output within a transaction.
 OutPoint = NamedTuple(
-    "OutPoint", [
-        ("txid", Union[str, int]),
-        ("txout_idx", int)
-    ]
+    "OutPoint", [("txid", Union[str, int]), ("txout_idx", int)]
 )
 
 
