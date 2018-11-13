@@ -100,6 +100,35 @@ class Block:
 
         return total
 
+    def split_serialized_transactions(self, serialized_txns: str) -> list:
+        num_bytes = var_int_to_bytes(serialized_txns[0:2])
+        if num_bytes == 1:
+            num_txs_serialized = serialized_txns[0:2]
+        else:
+            num_txs_serialized = serialized_txns[2:num_bytes*2]
+
+        num_txs = little_endian_to_int(num_txs_serialized)
+        
+        tx_list = []
+        bytes_counter = num_bytes * 2  # Ignore the num txs.
+        for _ in range(num_txs):
+            start_tx = bytes_counter
+            # TX ID = 32 bytes / VOUT = 4 bytes
+            bytes_counter += (32 + 4) * 2
+
+            # script_sig_size = VARINT
+            num_bytes = var_int_to_bytes(serialized_txns[bytes_counter:2])
+            script_sig_size_bytes = num_bytes * 2
+
+            script_sig_size = little_endian_to_int(
+                serialized_txns[bytes_counter:script_sig_size_bytes]
+            )
+
+            bytes_counter = script_sig_size * 2) --- FAIL HERE
+
+        return tx_list
+
+
     def deserialize(self, block_serialized: str) -> None:
         magic = block_serialized[0:8]
         version = block_serialized[8:16]
@@ -118,11 +147,7 @@ class Block:
         self.bits = little_endian_to_int(bits)
         self.nonce = little_endian_to_int(nonce)
 
-        num_transactions = var_int_to_bytes(block_serialized[172:174])
-        for _ in range(num_transactions):
-            pass
-
-        # print(block_serialized[174:])
+        tx_list = self.split_serialized_transactions(block_serialized[174:])
 
         """
         txns = deserialize_transaction(block_serialized[172:])
