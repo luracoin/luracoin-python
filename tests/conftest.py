@@ -1,9 +1,9 @@
-from luracoin.transactions import Transaction, TxIn, TxOut, OutPoint
-from luracoin.blocks import Block
-from luracoin.wallet import build_p2pkh
-from luracoin.config import Config
 import pytest
 
+from luracoin.blocks import Block
+from luracoin.config import Config
+from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
+from luracoin.wallet import build_p2pkh
 
 tx1 = Transaction(
     version=1,

@@ -1,4 +1,4 @@
-from luracoin.transactions import Transaction, TxIn, TxOut, OutPoint
+from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
 from luracoin.wallet import build_p2pkh
 
 

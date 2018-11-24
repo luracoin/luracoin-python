@@ -1,6 +1,7 @@
 from typing import List, NamedTuple, Union
-from luracoin.helpers import sha256d, var_int, little_endian, mining_reward
+
 from luracoin.config import Config
+from luracoin.helpers import little_endian, mining_reward, sha256d, var_int
 
 # Used to represent the specific output within a transaction.
 OutPoint = NamedTuple(

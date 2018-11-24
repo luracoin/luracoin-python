@@ -1,12 +1,7 @@
-from luracoin.helpers import (
-    sha256d,
-    little_endian,
-    var_int,
-    little_endian_to_int,
-    var_int_to_bytes,
-)
-from luracoin.exceptions import BlockNotValidError
 from luracoin.config import Config
+from luracoin.exceptions import BlockNotValidError
+from luracoin.helpers import (little_endian, little_endian_to_int, sha256d,
+                              var_int, var_int_to_bytes)
 
 
 class Block:

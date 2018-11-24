@@ -1,4 +1,4 @@
-from luracoin.helpers import var_int, little_endian
+from luracoin.helpers import little_endian, var_int
 
 
 def test_var_int() -> None:

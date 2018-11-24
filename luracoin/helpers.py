@@ -1,6 +1,6 @@
+import binascii
 import hashlib
 from typing import Union
-import binascii
 
 
 def sha256d(s: Union[str, bytes]) -> str:

@@ -1,4 +1,5 @@
 from base58 import b58decode_check
+
 from luracoin.helpers import little_endian
 
 
