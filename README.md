@@ -16,12 +16,14 @@ It's easy and fun. We don't need performance yet, we need more contributors.
 #### Diferences with Bitcoin 
 - 2 more bytes on the header (Nonce).  
 - Block time every 5 min instead of 10 min.  
-- 4MB limit instead of 1MB.  
+- 4MB limit instead of 1MB.
+- Supply of 21 billion coins instead of 21 million.
 
 
 ## Testing
+For testing use ```pytest```
 ```shell
-python -m unittest discover -s tests -p '*_test.py' -v
+pytest -v
 ```
 
 ## LevelDB 
@@ -59,7 +61,3 @@ python -m unittest discover -s tests -p '*_test.py' -v
         Output.
 
 ```
-
-## Roadmap
-- 01 Mar 2018: Launch Testnet
-- 30 Aug 2019: Launch Mainnet & Create wallets and apps
