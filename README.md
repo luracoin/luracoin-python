@@ -61,5 +61,5 @@ python -m unittest discover -s tests -p '*_test.py' -v
 ```
 
 ## Roadmap
-- 31 Dec 2018: Launch Testnet
-- 30 June 2019: Launch Mainnet & Create wallets and apps
+- 01 Mar 2018: Launch Testnet
+- 30 Aug 2019: Launch Mainnet & Create wallets and apps
