@@ -21,7 +21,7 @@ class Config:
     MAX_FILE_SIZE = 134_217_728
 
     # The infamous max block size.
-    MAX_BLOCK_SERIALIZED_SIZE = 1_000_000  # bytes = 1MB
+    MAX_BLOCK_SERIALIZED_SIZE = 4_000_000  # bytes = 1MB
 
     # Coinbase transaction outputs can be spent after this many blocks have
     # elapsed since being mined.
@@ -41,7 +41,7 @@ class Config:
     # The number of Belushis per coin. #realname COIN
     BELUSHIS_PER_COIN = int(100e6)
 
-    TOTAL_COINS = 21_000_000
+    TOTAL_COINS = 21_000_000_000
 
     # The maximum number of Belushis that will ever be found.
     MAX_MONEY = BELUSHIS_PER_COIN * TOTAL_COINS
@@ -50,7 +50,7 @@ class Config:
     # This is lower than Bitcoin's configuation (10 * 60).
     #
     # #realname PowTargetSpacing
-    TIME_BETWEEN_BLOCKS_TARGET = 1 * 60
+    TIME_BETWEEN_BLOCKS_TARGET = 5 * 60
 
     # The number of seconds we want a difficulty period to last.
     #
