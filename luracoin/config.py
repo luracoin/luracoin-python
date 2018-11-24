@@ -1,25 +1,27 @@
 import os
 
+
 class Config:
     # Wallet path
-    test_var = "Hey"
     BASE_DIR = os.path.normpath(os.getcwd() + os.sep + os.pardir) + "/luracoin"
-    
-    WALLET_PATH = BASE_DIR + '/bin/wallet.dat'
+
+    WALLET_PATH = BASE_DIR + "/bin/wallet.dat"
 
     MAGIC_BYTES = "ba77d89f"
 
-    MAX_TX_PER_BLOCK = 65_535
+    MAX_TX_PER_BLOCK = 65535
+
+    PORT = 9999
 
     # Data dir
-    DATA_DIR = BASE_DIR + '/bin/data/'
-    BLOCKS_DIR = DATA_DIR + 'blocks/'
+    DATA_DIR = BASE_DIR + "/bin/data/"
+    BLOCKS_DIR = DATA_DIR + "blocks/"
 
     # Max file size of each blkXXXX.dat in Bytes (128MiB)
     MAX_FILE_SIZE = 134_217_728
 
     # The infamous max block size.
-    MAX_BLOCK_SERIALIZED_SIZE = 1000000  # bytes = 1MB
+    MAX_BLOCK_SERIALIZED_SIZE = 4_000_000  # bytes = 1MB
 
     # Coinbase transaction outputs can be spent after this many blocks have
     # elapsed since being mined.
@@ -27,13 +29,19 @@ class Config:
     # This is "100" in bitcoin core.
     COINBASE_MATURITY = 2
 
+    COINBASE_TX_ID = (
+        "0000000000000000000000000000000000000000000000000000000000000000"
+    )
+
+    COINBASE_TX_INDEX = "ffffffff"
+
     # Accept blocks timestamped as being from the future, up to this amount.
-    MAX_FUTURE_BLOCK_TIME = (60 * 60 * 2)
+    MAX_FUTURE_BLOCK_TIME = 60 * 60 * 2
 
     # The number of Belushis per coin. #realname COIN
     BELUSHIS_PER_COIN = int(100e6)
 
-    TOTAL_COINS = 21_000_000
+    TOTAL_COINS = 21_000_000_000
 
     # The maximum number of Belushis that will ever be found.
     MAX_MONEY = BELUSHIS_PER_COIN * TOTAL_COINS
@@ -42,7 +50,7 @@ class Config:
     # This is lower than Bitcoin's configuation (10 * 60).
     #
     # #realname PowTargetSpacing
-    TIME_BETWEEN_BLOCKS_TARGET = 1 * 60
+    TIME_BETWEEN_BLOCKS_TARGET = 5 * 60
 
     # The number of seconds we want a difficulty period to last.
     #
@@ -50,12 +58,14 @@ class Config:
     # is configured to target difficulty periods of (10 * 2016) minutes.
     #
     # #realname PowTargetTimespan
-    DIFFICULTY_PERIOD_TARGET = (60 * 60 * 10)
+    DIFFICULTY_PERIOD_TARGET = 60 * 60 * 10
 
     # After this number of blocks are found, adjust difficulty.
     #
     # #realname DifficultyAdjustmentInterval
-    DIFFICULTY_PERIOD_IN_BLOCKS = (DIFFICULTY_PERIOD_TARGET / TIME_BETWEEN_BLOCKS_TARGET)
+    DIFFICULTY_PERIOD_IN_BLOCKS = (
+        DIFFICULTY_PERIOD_TARGET / TIME_BETWEEN_BLOCKS_TARGET
+    )
 
     # The number of right-shifts applied to 2 ** 256 in order to create the
     # initial difficulty target necessary for mining a block.

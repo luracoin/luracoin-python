@@ -1,182 +1,154 @@
-from typing import Iterable, NamedTuple, Union
-import logging
-from .config import Config
-import os
-import hashlib
-import binascii
-from .wallet import init_wallet
-from .transactions import validate_tx, remove_tx_from_chainstate, add_tx_to_chainstate
-from .blockchain import Block, TxOut, TxIn, UnspentTxOut, Transaction, OutPoint
-from .serialize import deserialize_block
-from .pow import validate_pow
-from .helpers import var_int, get_blk_file_size, sha256d
-import plyvel
+from luracoin.config import Config
+from luracoin.exceptions import BlockNotValidError
+from luracoin.helpers import (little_endian, little_endian_to_int, sha256d,
+                              var_int, var_int_to_bytes)
 
 
-def serialize_block(block):
-    '''
-    Magic bytes (4 bytes)
-    Block header (82 bytes)
-    -> Block version (4 bytes)
-    -> Prev hash (32 bytes)
-    -> Block hash (32 bytes)
-    -> Difficulty bits (4 bytes)
-    -> Timestamp (4 bytes)
-    -> Nonce (6 bytes)
-    '''
-    version = block.version.to_bytes(4, byteorder='little', signed=False).hex()
+class Block:
+    # A version integer.
+    version: int
 
-    if block.prev_block_hash == 0:
-        prev_hash = "0000000000000000000000000000000000000000000000000000000000000000"
-    else:
-        prev_hash = block.prev_block_hash
+    # A hash of the previous block's header.
+    prev_block_hash: str
 
-    bits = block.bits.to_bytes(4, byteorder='little', signed=False).hex()
-    timestamp = block.timestamp.to_bytes(4, byteorder='little', signed=False).hex()
-    nonce = block.nonce.to_bytes(6, byteorder='little', signed=False).hex()
-    total = Config.MAGIC_BYTES + version + prev_hash + block.id + bits + timestamp + nonce
+    # A UNIX timestamp of when this block was created.
+    timestamp: int
 
-    # Tx_count
-    tx_count = var_int(len(block.txns))
-    total = total + tx_count
+    # The difficulty target; i.e. the hash of this block header must be under
+    # (2 ** 256 >> bits) to consider work proved.
+    bits: int
 
-    # Tx_data
-    for tx in block.txns:
-        total = total + tx.serialize_transaction()
+    # The value that's incremented in an attempt to get the block header to
+    # hash to a value below `bits`.
+    nonce: int
 
-    return total
+    # Transaction list
+    txns: list
 
+    def __init__(
+        self,
+        version: int = None,
+        prev_block_hash: str = None,
+        timestamp: int = None,
+        bits: int = None,
+        nonce: int = None,
+        txns: list = [],
+    ) -> None:
+        self.version = version
+        self.prev_block_hash = prev_block_hash
+        self.timestamp = timestamp
+        self.bits = bits
+        self.nonce = nonce
+        self.txns = txns
 
-def recieve_block(block):
-    '''
-    Triggered when you recieve a block over the P2P network or when you create one. This function
-    Validate the block and add it to the chain.
+    @property
+    def id(self) -> str:
+        txns_ids = ""
+        for t in self.txns:
+            txns_ids = txns_ids + t.id
 
-    :param block: Block object
-    '''
-    if validate_block(block):
-        add_block_to_chain(block)
+        string_to_hash = (
+            str(self.version)
+            + str(self.prev_block_hash)
+            + str(self.timestamp)
+            + str(self.bits)
+            + str(self.nonce)
+            + str(txns_ids)
+        )
 
+        block_id = sha256d(string_to_hash)
+        return block_id
 
-def validate_block(block):
-    '''
-    Validate a block.
+    def serialize(self) -> str:
+        """
+        Magic bytes (4 bytes)
+        Block header (82 bytes)
+        -> Block version (4 bytes)
+        -> Prev hash (32 bytes)
+        -> Block hash (32 bytes)
+        -> Difficulty bits (4 bytes)
+        -> Timestamp (4 bytes)
+        -> Nonce (6 bytes)
+        """
+        version = little_endian(num_bytes=4, data=self.version)
+        bits = little_endian(num_bytes=4, data=self.bits)
+        timestamp = little_endian(num_bytes=4, data=self.timestamp)
+        nonce = little_endian(num_bytes=6, data=self.nonce)
 
-    :param block: Block object
-    :return: Boolean
-    '''
-    block = deserialize_block(block)
-    if validate_pow(block) and validate_basics(block) and validate_transactions(block):
-        return True
+        total = (
+            Config.MAGIC_BYTES
+            + version
+            + self.prev_block_hash
+            + self.id
+            + bits
+            + timestamp
+            + nonce
+        )
 
+        # Tx_count
+        tx_count = var_int(len(self.txns))
+        total += tx_count
 
-def validate_basics(block):
-    '''
-    Validate block basics.
-        - prev_block_hash + Current height
-        - Bits
-        - Size
-        - Reward + Fees
-        - Timestamp
+        # Tx_data
+        for tx in self.txns:
+            total += tx.serialize()
 
-    :param block: Block object
-    :return: Boolean
-    '''
-    return True
+        return total
 
-
-def validate_transactions(block):
-    '''
-    Validate all transactions in a block.
-
-    :param block: Block object
-    :return: Boolean
-    '''
-    valid = True
-    for tx in block.txns:
-        if not validate_tx(tx):
-            valid = False
-
-    return valid
-
-
-def next_blk_file(current_blk_file: str) -> str:
-    '''
-    Increases by one the blk file name, for example:
-    blk000132.dat => blk000133.dat
-
-    :param current_blk_file: <String> Actual file (eg. 000001)
-    :return: <String> Next file (eg. 000002)
-    '''
-    return str(int(current_blk_file) + 1).zfill(6)
-
-
-
-def process_block_transactions(block):
-    '''
-    Add outputs to the chainstate and delete the inputs used.
-    '''
-    for tx in block.txns:
-        for tx_spent in tx.txins:
-            if tx_spent.to_spend.txid != 0:
-                remove_tx_from_chainstate(tx_spent.to_spend.txid, tx_spent.to_spend.txout_idx)
-
-        add_tx_to_chainstate(tx, int(block.txns[0].txins[0].unlock_sig))
-
-
-
-def add_block_to_chain(serialized_block):
-    '''
-    Save a serialized block in "blkXXXXX.dat file". If the current file size is greater than 
-    Config.MAX_FILE_SIZE then we'll create another file and save the numberinfo LevelDB.
-
-    Data:
-    [  magic bytes ]  <- 4 bytes
-    [     size     ]  <- 4 bytes
-    [ block header ]  <- 80 bytes
-    [   tx count   ]  <- varint
-    [    TX data   ]  <- remainder
-    '''
-    # Deserialize block
-    deserialize_blk = deserialize_block(serialized_block)
-
-    if validate_block(serialized_block):
-        # Substract the length of the Magic Numbers
-        size_block = int(len(serialized_block) - 8).to_bytes(4, byteorder='little', signed=False).hex()
-        serialized_block = serialized_block[:8] + size_block + serialized_block[8:]
-
-        # Get the current file
-        db = plyvel.DB(Config.BLOCKS_DIR + 'index', create_if_missing=True)
-        last_blk_file = db.get(b'l')
-        
-        # If there is not a current file we'll start by '000000'
-        if last_blk_file is None or last_blk_file == '' or last_blk_file == b'':
-            last_blk_file = '000000'
+    def split_serialized_transactions(self, serialized_txns: str) -> list:
+        num_bytes = var_int_to_bytes(serialized_txns[0:2])
+        if num_bytes == 1:
+            num_txs_serialized = serialized_txns[0:2]
         else:
-            last_blk_file.decode('utf-8')
+            num_txs_serialized = serialized_txns[2:num_bytes*2]
 
-        # If the actual file size is greater or equal to MAX_FILE_SIZE we'll increase it by one
-        if get_blk_file_size("blk" + str(last_blk_file) + ".dat") >= Config.MAX_FILE_SIZE:
-            last_blk_file = next_blk_file(last_blk_file)
+        num_txs = little_endian_to_int(num_txs_serialized)
+        
+        tx_list = []
+        bytes_counter = num_bytes * 2  # Ignore the num txs.
+        for _ in range(num_txs):
+            start_tx = bytes_counter
+            # TX ID = 32 bytes / VOUT = 4 bytes
+            bytes_counter += (32 + 4) * 2
 
-        try:
-            last_blk_file = last_blk_file.encode()
-        except AttributeError:
-            pass
+            # script_sig_size = VARINT
+            num_bytes = var_int_to_bytes(serialized_txns[bytes_counter:2])
+            script_sig_size_bytes = num_bytes * 2
 
-        try:
-            f = open(Config.BLOCKS_DIR + "blk" + last_blk_file.decode() + ".dat", 'ab+')
-            contents = f.read()
-            f.close()
-        except FileNotFoundError:
-            contents = b''
+            script_sig_size = little_endian_to_int(
+                serialized_txns[bytes_counter:script_sig_size_bytes]
+            )
 
-        with open(Config.BLOCKS_DIR + "blk" + last_blk_file.decode() + ".dat", "ab+") as f:
-            f.write(contents + serialized_block.encode())
+            bytes_counter = script_sig_size * 2) --- FAIL HERE
 
-        # Save the current file number
-        db.put(b'l', last_blk_file)
-        db.put(b'b', deserialize_blk.txns[0].txins[0].unlock_sig.encode())
-        db.close()
+        return tx_list
 
-        process_block_transactions(deserialize_blk)
+
+    def deserialize(self, block_serialized: str) -> None:
+        magic = block_serialized[0:8]
+        version = block_serialized[8:16]
+        prev_hash = block_serialized[16:80]
+        # block_hash = block_serialized[80:144]
+        bits = block_serialized[144:152]
+        timestamp = block_serialized[152:160]
+        nonce = block_serialized[160:172]
+
+        if magic != Config.MAGIC_BYTES:
+            raise BlockNotValidError
+
+        self.version = little_endian_to_int(version)
+        self.prev_block_hash = prev_hash
+        self.timestamp = little_endian_to_int(timestamp)
+        self.bits = little_endian_to_int(bits)
+        self.nonce = little_endian_to_int(nonce)
+
+        tx_list = self.split_serialized_transactions(block_serialized[174:])
+
+        """
+        txns = deserialize_transaction(block_serialized[172:])
+        for t in txns:
+            self.txns.append(t)
+        """
+
+    def validate(self) -> None:
+        pass
