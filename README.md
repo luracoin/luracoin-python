@@ -11,7 +11,7 @@ Early development. The blockchain is not live yet.
 
 ## FAQ
 #### Why python?
-It's easy and fun. We don't need performance yet, we need more contributors.
+It's easy and fun. We don't need performance yet, we need more contributors. I will also create a Go implementation.
 
 #### Diferences with Bitcoin 
 - 2 more bytes on the header (Nonce).  
