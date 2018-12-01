@@ -111,6 +111,7 @@ class Transaction(NamedTuple):
         return self.id
 
     def serialize(self) -> str:
+        # Version
         serialized_tx = little_endian(num_bytes=2, data=self.version)
 
         # INPUTS:

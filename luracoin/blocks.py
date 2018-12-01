@@ -107,19 +107,13 @@ class Block:
         tx_list = []
         bytes_counter = num_bytes * 2  # Ignore the num txs.
         for _ in range(num_txs):
-            start_tx = bytes_counter
-            # TX ID = 32 bytes / VOUT = 4 bytes
-            bytes_counter += (32 + 4) * 2
-
-            # script_sig_size = VARINT
-            num_bytes = var_int_to_bytes(serialized_txns[bytes_counter:2])
-            script_sig_size_bytes = num_bytes * 2
-
-            script_sig_size = little_endian_to_int(
-                serialized_txns[bytes_counter:script_sig_size_bytes]
-            )
-
-            bytes_counter = script_sig_size * 2) --- FAIL HERE
+            # Version (2 bytes)
+            # Inputs (VAR INT)
+            #    TX ID
+            #    TVOUT
+            # Outputs (VAR INT)
+            #    Value (8 bytes)
+            #    Script Size
 
         return tx_list
 

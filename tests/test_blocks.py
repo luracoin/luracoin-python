@@ -37,3 +37,4 @@ def test_block_deserialize(block1):  # type: ignore
     assert block.bits == block1.bits
     assert block.nonce == block1.nonce
     assert block.prev_block_hash == block1.prev_block_hash
+    # TODO: Transactions
