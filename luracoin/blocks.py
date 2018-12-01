@@ -103,20 +103,21 @@ class Block:
             num_txs_serialized = serialized_txns[2:num_bytes*2]
 
         num_txs = little_endian_to_int(num_txs_serialized)
-        
-        tx_list = []
-        bytes_counter = num_bytes * 2  # Ignore the num txs.
+
+        tx_list: list = []
+        # bytes_counter = num_bytes * 2  # Ignore the num txs.
         for _ in range(num_txs):
-            # Version (2 bytes)
-            # Inputs (VAR INT)
-            #    TX ID
-            #    TVOUT
-            # Outputs (VAR INT)
-            #    Value (8 bytes)
-            #    Script Size
+            """
+            - Version (2 bytes)
+            - Inputs (VAR INT)
+                - TX ID
+                - TVOUT
+            - Outputs (VAR INT)
+                - Value (8 bytes)
+                - Script Size
+            """
 
         return tx_list
-
 
     def deserialize(self, block_serialized: str) -> None:
         magic = block_serialized[0:8]
@@ -138,11 +139,8 @@ class Block:
 
         tx_list = self.split_serialized_transactions(block_serialized[174:])
 
-        """
-        txns = deserialize_transaction(block_serialized[172:])
-        for t in txns:
+        for t in tx_list:
             self.txns.append(t)
-        """
 
     def validate(self) -> None:
         pass
