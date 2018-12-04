@@ -69,7 +69,7 @@ class TxOut(NamedTuple):
         pass
 
 
-class Transaction(NamedTuple):
+class Transaction:
     version: int
     txins: List[TxIn]
     txouts: List[TxOut]
@@ -78,6 +78,18 @@ class Transaction(NamedTuple):
     # < 500000000: Block number at which this transaction is unlocked.
     # >= 500000000: UNIX timestamp at which this transaction is unlocked.
     locktime: int = 0
+
+    def __init__(
+        self,
+        version: int = 0,
+        txins: list = [],
+        txouts: list = [],
+        locktime: int = 0,
+    ) -> None:
+        self.version = version
+        self.txins = txins
+        self.txouts = txouts
+        self.locktime = locktime
 
     @property
     def is_coinbase(self) -> bool:

@@ -1,7 +1,13 @@
 from luracoin.config import Config
 from luracoin.exceptions import BlockNotValidError
-from luracoin.helpers import (little_endian, little_endian_to_int, sha256d,
-                              var_int, var_int_to_bytes)
+from luracoin.helpers import (
+    little_endian,
+    little_endian_to_int,
+    sha256d,
+    var_int,
+    var_int_to_bytes
+)
+from luracoin.transactions import Transaction
 
 
 class Block:
@@ -95,30 +101,6 @@ class Block:
 
         return total
 
-    def split_serialized_transactions(self, serialized_txns: str) -> list:
-        num_bytes = var_int_to_bytes(serialized_txns[0:2])
-        if num_bytes == 1:
-            num_txs_serialized = serialized_txns[0:2]
-        else:
-            num_txs_serialized = serialized_txns[2:num_bytes*2]
-
-        num_txs = little_endian_to_int(num_txs_serialized)
-
-        tx_list: list = []
-        # bytes_counter = num_bytes * 2  # Ignore the num txs.
-        for _ in range(num_txs):
-            """
-            - Version (2 bytes)
-            - Inputs (VAR INT)
-                - TX ID
-                - TVOUT
-            - Outputs (VAR INT)
-                - Value (8 bytes)
-                - Script Size
-            """
-
-        return tx_list
-
     def deserialize(self, block_serialized: str) -> None:
         magic = block_serialized[0:8]
         version = block_serialized[8:16]
@@ -137,10 +119,44 @@ class Block:
         self.bits = little_endian_to_int(bits)
         self.nonce = little_endian_to_int(nonce)
 
-        tx_list = self.split_serialized_transactions(block_serialized[174:])
+        block_body = block_serialized[174:]
 
-        for t in tx_list:
-            self.txns.append(t)
+        print(block_body)
+
+        num_bytes = var_int_to_bytes(block_body[0:2])
+        if num_bytes == 1:
+            num_txs_serialized = block_body[0:2]
+        else:
+            num_txs_serialized = block_body[2:num_bytes*2]
+
+        num_txs = little_endian_to_int(num_txs_serialized)
+
+        print("Number transactions: ")
+        print(num_txs)
+
+        block_body = block_serialized[174 + (num_bytes * 2):]
+        tx_list_position_lookup = 0
+
+        for _ in range(num_txs):
+            tx_cursor = int(tx_list_position_lookup)
+            transaction = Transaction()
+            # - Version (2 bytes)
+            # - Num Inputs (VARINT)
+            #   - TX ID (32 bytes)
+            #   - VOUT (4 bytes)
+            #   - unlock_sig_size (VARINT)
+            #   - unlock_sig (VARINT)
+            # - Num Outputs
+            #   - Value (8 bytes)
+            #   - Script Size (VARINT)
+            #   - Script (VARINT)
+            tx_cursor += 4
+            transaction.version = little_endian_to_int(block_body[tx_list_position_lookup:tx_cursor])
+            tx_list_position_lookup = tx_cursor
+            print(transaction.version)
+            
+
+
 
     def validate(self) -> None:
         pass
