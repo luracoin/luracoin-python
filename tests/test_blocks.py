@@ -43,7 +43,7 @@ def test_block_serialize(block1, block2):  # type: ignore
     )
 
 
-def test_block_deserialize(block2):  # type: ignore
+def test_block_deserialize(block1, block2):  # type: ignore
     block = Block()
 
     block.deserialize(
@@ -72,4 +72,22 @@ def test_block_deserialize(block2):  # type: ignore
     assert block.nonce == block2.nonce
     assert block.prev_block_hash == block2.prev_block_hash
     assert block.txns == block2.txns
-    # TODO: Transactions
+    
+    block = Block()
+
+    block.deserialize(
+        "ba77d89f010000000000000000000000000000000000000000000000000000000000"
+        "000000000000e19cc16982ee3df6ceee812c373a7b70a13ef59e8239290ba18480f9"
+        "d743289918000000e4f98359a9859a00000001010001000000000000000000000000"
+        "0000000000000000000000000000000000000000ffffffff0100000000003005ed0b"
+        "2000000003476a91500ff7ff008512170c57980f447dc24f5c52e2df03c88ac002f6"
+        "859000000003476a915003ea6275ba0c6860ce74727f72617883099961a4388ac006"
+        "5cd1d000000003476a91500785211d22e8c5c6bad7410b9baf99dac866a447f88ac"
+    )
+
+    assert block.version == block1.version
+    assert block.timestamp == block1.timestamp
+    assert block.bits == block1.bits
+    assert block.nonce == block1.nonce
+    assert block.prev_block_hash == block1.prev_block_hash
+    assert block.txns == block1.txns
