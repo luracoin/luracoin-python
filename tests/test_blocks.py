@@ -71,7 +71,7 @@ def test_block_deserialize(block1, block2):  # type: ignore
     assert block.bits == block2.bits
     assert block.nonce == block2.nonce
     assert block.prev_block_hash == block2.prev_block_hash
-    assert block.txns == block2.txns
+    assert block.id == block2.id
     
     block = Block()
 
@@ -90,4 +90,4 @@ def test_block_deserialize(block1, block2):  # type: ignore
     assert block.bits == block1.bits
     assert block.nonce == block1.nonce
     assert block.prev_block_hash == block1.prev_block_hash
-    assert block.txns == block1.txns
+    assert block.id == block1.id

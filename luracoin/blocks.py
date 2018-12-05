@@ -7,7 +7,7 @@ from luracoin.helpers import (
     var_int,
     var_int_to_bytes
 )
-from luracoin.transactions import Transaction
+from luracoin.transactions import Transaction, OutPoint, TxIn, TxOut
 
 
 class Block:
@@ -170,11 +170,14 @@ class Block:
             block_body = block_body[num_inputs_total_chars_len:]
 
             for _ in range(num_inputs):
+                txin = TxIn()
                 print("- TXIN: ")
                 tx_id = block_body[0:64]
                 print(f" -- Transaction ID: {tx_id}")
-                vout = block_body[64:72]
+                vout = little_endian_to_int(block_body[64:72])
                 print(f" -- Vout: {vout}")
+
+                txin.to_spend = OutPoint(tx_id, vout)
                 block_body = block_body[72:]
 
                 bytes_for_unlock_sig_size = var_int_to_bytes(block_body[0:2])
@@ -191,11 +194,17 @@ class Block:
 
                 unlock_sig = block_body[0:unlock_sig_size]
                 print(f" -- Unlock Sig: {unlock_sig}")
+
+                txin.unlock_sig = unlock_sig
                 block_body = block_body[unlock_sig_size:]
 
-                sequence = block_body[0:8]
+                sequence = little_endian_to_int(block_body[0:8])
                 print(f" -- Sequence: {sequence}")
+
+                txin.sequence = sequence
                 block_body = block_body[8:]
+
+                transaction.txins.append(txin)
 
             # Num outputs
             bytes_for_num_outputs = var_int_to_bytes(block_body[0:2])
@@ -211,9 +220,12 @@ class Block:
             block_body = block_body[num_outputs_total_chars_len:]
 
             for _ in range(num_outputs):
+                txout = TxOut()
                 print("- TXOUT: ")
                 value = little_endian_to_int(block_body[0:16])
                 print(f"-- Value: {value}")
+
+                txout.value = value
                 block_body = block_body[16:]
 
                 bytes_for_script_size = var_int_to_bytes(block_body[0:2])
@@ -229,11 +241,16 @@ class Block:
                 block_body = block_body[script_size_total_chars_len:]
 
                 script = block_body[0:script_size]
-                print(f" -- Script: {script}")
+                print(f"-- Script: {script}")
+
+                txout.to_address = script
                 block_body = block_body[script_size:]
+
+                transaction.txouts.append(txout)
 
 
             print("===============================")
+            self.txns.append(transaction)
 
             # Num inputs here
             

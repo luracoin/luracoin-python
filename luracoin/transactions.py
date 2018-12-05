@@ -9,7 +9,7 @@ OutPoint = NamedTuple(
 )
 
 
-class TxIn(NamedTuple):
+class TxIn:
     """Inputs to a Transaction."""
 
     # A reference to the output we're spending. This is None for coinbase
@@ -23,6 +23,16 @@ class TxIn(NamedTuple):
     # A sender-defined sequence number which allows us replacement of the txn
     # if desired.
     sequence: int
+
+    def __init__(
+        self,
+        to_spend: Union[OutPoint, None] = None,
+        unlock_sig: str = None,
+        sequence: str = None,
+    ) -> None:
+        self.to_spend = to_spend
+        self.unlock_sig = unlock_sig
+        self.sequence = sequence
 
     def serialize(self) -> str:
         tx_id = self.to_spend.txid
@@ -50,7 +60,7 @@ class TxIn(NamedTuple):
         pass
 
 
-class TxOut(NamedTuple):
+class TxOut:
     """Outputs from a Transaction."""
 
     # The number of Belushis this awards.
@@ -58,6 +68,10 @@ class TxOut(NamedTuple):
 
     # The public key of the owner of this Txn.
     to_address: str
+
+    def __init__(self, value: int = None, to_address: str = None) -> None:
+        self.value = value
+        self.to_address = to_address
 
     def serialize(self) -> str:
         value = little_endian(num_bytes=8, data=self.value)
