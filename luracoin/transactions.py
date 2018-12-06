@@ -5,7 +5,7 @@ from luracoin.helpers import little_endian, mining_reward, sha256d, var_int
 
 # Used to represent the specific output within a transaction.
 OutPoint = NamedTuple(
-    "OutPoint", [("txid", Union[str, int]), ("txout_idx", int)]
+    "OutPoint", [("txid", Union[str, int]), ("txout_idx", Union[str, int])]
 )
 
 
@@ -29,7 +29,9 @@ class TxIn:
         if self.to_spend.txout_idx == Config.COINBASE_TX_INDEX:
             vout = Config.COINBASE_TX_INDEX
         else:
-            vout = little_endian(num_bytes=4, data=self.to_spend.txout_idx)
+            vout = little_endian(  # type: ignore
+                num_bytes=4, data=self.to_spend.txout_idx
+            )
 
         script_sig = self.unlock_sig
         script_sig_size = var_int(len(script_sig))

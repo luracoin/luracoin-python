@@ -147,12 +147,12 @@ def block2() -> Block:
 
 
 @pytest.fixture
-def coinbase_transaction1() -> Transaction:
+def coinbase_tx1() -> Transaction:
     return coinbase1
 
 
 @pytest.fixture
-def coinbase_transaction2() -> Transaction:
+def coinbase_tx2() -> Transaction:
     return coinbase2
 
 
