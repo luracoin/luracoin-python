@@ -10,19 +10,6 @@ OutPoint = NamedTuple(
 
 
 class TxIn:
-    """Inputs to a Transaction."""
-
-    # A reference to the output we're spending. This is None for coinbase
-    # transactions.
-    to_spend: Union[OutPoint, None]
-
-    # The (signature, pubkey) pair which unlocks the TxOut for spending.
-    unlock_sig: str
-    # unlock_pk: bytes
-
-    # A sender-defined sequence number which allows us replacement of the txn
-    # if desired.
-    sequence: int
 
     def __init__(
         self,
@@ -40,7 +27,7 @@ class TxIn:
         if self.to_spend.txid == 0:
             tx_id = Config.COINBASE_TX_ID
 
-        if self.to_spend.txout_idx == -1:
+        if self.to_spend.txout_idx == Config.COINBASE_TX_INDEX:
             vout = Config.COINBASE_TX_INDEX
         else:
             vout = little_endian(num_bytes=4, data=self.to_spend.txout_idx)
@@ -61,13 +48,6 @@ class TxIn:
 
 
 class TxOut:
-    """Outputs from a Transaction."""
-
-    # The number of Belushis this awards.
-    value: int
-
-    # The public key of the owner of this Txn.
-    to_address: str
 
     def __init__(self, value: int = None, to_address: str = None) -> None:
         self.value = value
@@ -84,14 +64,6 @@ class TxOut:
 
 
 class Transaction:
-    version: int
-    txins: List[TxIn]
-    txouts: List[TxOut]
-
-    # The block number or timestamp at which this transaction is unlocked.
-    # < 500000000: Block number at which this transaction is unlocked.
-    # >= 500000000: UNIX timestamp at which this transaction is unlocked.
-    locktime: int = 0
 
     def __init__(
         self,
@@ -107,7 +79,7 @@ class Transaction:
 
     @property
     def is_coinbase(self) -> bool:
-        return len(self.txins) == 1 and str(self.txins[0].to_spend.txid) == "0"
+        return len(self.txins) == 1 and str(self.txins[0].to_spend.txid) == Config.COINBASE_TX_ID
 
     @property
     def id(self) -> str:
@@ -116,15 +88,9 @@ class Transaction:
         """
         msg = ""
         for x in self.txins:
-            msg = (
-                msg
-                + str(x.to_spend.txid)
-                + str(x.to_spend.txout_idx)
-                + str(x.unlock_sig)
-                + str(x.sequence)
-            )
+            msg = msg + x.serialize()
         for y in self.txouts:
-            msg = msg + str(y.value) + str(y.to_address)
+            msg = msg + y.serialize()
 
         tx_id = sha256d(msg)
         return tx_id

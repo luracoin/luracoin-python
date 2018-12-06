@@ -7,7 +7,7 @@ from luracoin.wallet import build_p2pkh
 
 coinbase1 = Transaction(
     version=1,
-    txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig="0", sequence=0)],
+    txins=[TxIn(to_spend=OutPoint(Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX), unlock_sig="0", sequence=0)],
     txouts=[
         TxOut(
             value=3_000_000_000,
@@ -27,7 +27,7 @@ coinbase1 = Transaction(
 
 coinbase2 = Transaction(
     version=1,
-    txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig="1", sequence=0)],
+    txins=[TxIn(to_spend=OutPoint(Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX), unlock_sig="1", sequence=0)],
     txouts=[
         TxOut(
             value=5_000_000_000,
@@ -106,8 +106,8 @@ def block1() -> Block:
         timestamp=1_501_821_412,
         bits=24,
         nonce=10_126_761,
-        txns=[coinbase1],
     )
+    block.txns=[coinbase1]
     return block
 
 
@@ -119,8 +119,8 @@ def block2() -> Block:
         timestamp=1_501_821_412,
         bits=24,
         nonce=10_126_761,
-        txns=[coinbase2, tx1, tx2, tx3, tx4, tx5],
     )
+    block.txns = [coinbase2, tx1, tx2, tx3, tx4, tx5]
     return block
 
 
