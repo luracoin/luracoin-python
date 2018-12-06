@@ -1,26 +1,32 @@
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
 from luracoin.wallet import build_p2pkh
+from luracoin.config import Config
 
 
 def test_transaction_serialize(transaction1):  # type: ignore
     assert transaction1.serialize() == (
-        "01000100000000000000000000000000000000000000000000000000000000000000"
-        "00ffffffff0100000000003005ed0b2000000003476a9150087a6532f90c45ef5cfd"
-        "d7f90948b2a0fc383dd1b88ac002f6859000000003476a9150087a6532f90c45ef5c"
-        "fdd7f90948b2a0fc383dd1b88ac0065cd1d000000003476a9150087a6532f90c45ef"
-        "5cfdd7f90948b2a0fc383dd1b88ac"
+        "0100014ac727f587761a17f5a3b63de589959989c655b579d261361ebaa287954440"
+        "a5000000000100000000001d0090000000000003476a915002fb168b47d7cb54b07c"
+        "7a4c4f7c005811f0a775d88ac"
     )
 
 
 def test_transaction_id(transaction1):  # type: ignore
     assert transaction1.id == (
-        "c2821034a332fad997e38281f8d9d6ac765171ac41f9c761f9d0cc54e02a17ee"
+        "151b3b83f5a976279416b00200717120261d377632b5fef66cff076d34330383"
     )
 
 
-def test_transaction_is_coinbase(transaction1, transaction2):  # type: ignore
-    assert transaction1.is_coinbase is True
+def test_transaction_is_not_coinbase(  # type: ignore
+    transaction1, transaction2
+):
+    assert transaction1.is_coinbase is False
     assert transaction2.is_coinbase is False
+
+
+def test_transaction_is_coinbase(coinbase_tx1, coinbase_tx2):  # type: ignore
+    assert coinbase_tx1.is_coinbase is True
+    assert coinbase_tx2.is_coinbase is True
 
 
 def test_transaction_validate(transaction1, transaction2):  # type: ignore
@@ -29,7 +35,15 @@ def test_transaction_validate(transaction1, transaction2):  # type: ignore
 
     tx = Transaction(
         version=1,
-        txins=[TxIn(to_spend=OutPoint(0, -1), unlock_sig="0", sequence=0)],
+        txins=[
+            TxIn(
+                to_spend=OutPoint(
+                    Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX
+                ),
+                unlock_sig="0",
+                sequence=0,
+            )
+        ],
         txouts=[
             TxOut(
                 value=3_000_000_000,

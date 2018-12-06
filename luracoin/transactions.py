@@ -1,28 +1,24 @@
-from typing import List, NamedTuple, Union
+from typing import NamedTuple, Union
 
 from luracoin.config import Config
 from luracoin.helpers import little_endian, mining_reward, sha256d, var_int
 
 # Used to represent the specific output within a transaction.
 OutPoint = NamedTuple(
-    "OutPoint", [("txid", Union[str, int]), ("txout_idx", int)]
+    "OutPoint", [("txid", Union[str, int]), ("txout_idx", Union[str, int])]
 )
 
 
-class TxIn(NamedTuple):
-    """Inputs to a Transaction."""
-
-    # A reference to the output we're spending. This is None for coinbase
-    # transactions.
-    to_spend: Union[OutPoint, None]
-
-    # The (signature, pubkey) pair which unlocks the TxOut for spending.
-    unlock_sig: str
-    # unlock_pk: bytes
-
-    # A sender-defined sequence number which allows us replacement of the txn
-    # if desired.
-    sequence: int
+class TxIn:
+    def __init__(
+        self,
+        to_spend: Union[OutPoint, None] = None,
+        unlock_sig: str = None,
+        sequence: int = None,
+    ) -> None:
+        self.to_spend = to_spend
+        self.unlock_sig = unlock_sig
+        self.sequence = sequence
 
     def serialize(self) -> str:
         tx_id = self.to_spend.txid
@@ -30,10 +26,12 @@ class TxIn(NamedTuple):
         if self.to_spend.txid == 0:
             tx_id = Config.COINBASE_TX_ID
 
-        if self.to_spend.txout_idx == -1:
+        if self.to_spend.txout_idx == Config.COINBASE_TX_INDEX:
             vout = Config.COINBASE_TX_INDEX
         else:
-            vout = little_endian(num_bytes=4, data=self.to_spend.txout_idx)
+            vout = little_endian(  # type: ignore
+                num_bytes=4, data=self.to_spend.txout_idx
+            )
 
         script_sig = self.unlock_sig
         script_sig_size = var_int(len(script_sig))
@@ -50,14 +48,10 @@ class TxIn(NamedTuple):
         pass
 
 
-class TxOut(NamedTuple):
-    """Outputs from a Transaction."""
-
-    # The number of Belushis this awards.
-    value: int
-
-    # The public key of the owner of this Txn.
-    to_address: str
+class TxOut:
+    def __init__(self, value: int = None, to_address: str = None) -> None:
+        self.value = value
+        self.to_address = to_address
 
     def serialize(self) -> str:
         value = little_endian(num_bytes=8, data=self.value)
@@ -69,19 +63,25 @@ class TxOut(NamedTuple):
         pass
 
 
-class Transaction(NamedTuple):
-    version: int
-    txins: List[TxIn]
-    txouts: List[TxOut]
-
-    # The block number or timestamp at which this transaction is unlocked.
-    # < 500000000: Block number at which this transaction is unlocked.
-    # >= 500000000: UNIX timestamp at which this transaction is unlocked.
-    locktime: int = 0
+class Transaction:
+    def __init__(
+        self,
+        version: int = 0,
+        txins: list = [],
+        txouts: list = [],
+        locktime: int = 0,
+    ) -> None:
+        self.version = version
+        self.txins = txins
+        self.txouts = txouts
+        self.locktime = locktime
 
     @property
     def is_coinbase(self) -> bool:
-        return len(self.txins) == 1 and str(self.txins[0].to_spend.txid) == "0"
+        return (
+            len(self.txins) == 1
+            and str(self.txins[0].to_spend.txid) == Config.COINBASE_TX_ID
+        )
 
     @property
     def id(self) -> str:
@@ -90,15 +90,9 @@ class Transaction(NamedTuple):
         """
         msg = ""
         for x in self.txins:
-            msg = (
-                msg
-                + str(x.to_spend.txid)
-                + str(x.to_spend.txout_idx)
-                + str(x.unlock_sig)
-                + str(x.sequence)
-            )
+            msg = msg + x.serialize()
         for y in self.txouts:
-            msg = msg + str(y.value) + str(y.to_address)
+            msg = msg + y.serialize()
 
         tx_id = sha256d(msg)
         return tx_id
