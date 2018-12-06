@@ -9,3 +9,4 @@ script:
   - pytest
   - flake8
   - mypy .
+  - bash coverage.sh
