@@ -7,7 +7,13 @@ from luracoin.wallet import build_p2pkh
 
 coinbase1 = Transaction(
     version=1,
-    txins=[TxIn(to_spend=OutPoint(Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX), unlock_sig="0", sequence=0)],
+    txins=[
+        TxIn(
+            to_spend=OutPoint(Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX),
+            unlock_sig="0",
+            sequence=0,
+        )
+    ],
     txouts=[
         TxOut(
             value=3_000_000_000,
@@ -27,22 +33,30 @@ coinbase1 = Transaction(
 
 coinbase2 = Transaction(
     version=1,
-    txins=[TxIn(to_spend=OutPoint(Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX), unlock_sig="1", sequence=0)],
+    txins=[
+        TxIn(
+            to_spend=OutPoint(Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX),
+            unlock_sig="1",
+            sequence=0,
+        )
+    ],
     txouts=[
         TxOut(
             value=5_000_000_000,
             to_address=build_p2pkh("1DsrJ4PPKTxTLCtr5TYDHrcWo3FZ2aog86"),
-        ),
+        )
     ],
     locktime=0,
 )
 
 tx1 = Transaction(
     version=1,
-    txins=[TxIn(to_spend=OutPoint(coinbase1.id, 0), unlock_sig="0", sequence=0)],
+    txins=[
+        TxIn(to_spend=OutPoint(coinbase1.id, 0), unlock_sig="0", sequence=0)
+    ],
     txouts=[
         TxOut(
-            value=2_512,
+            value=2512,
             to_address=build_p2pkh("15MBHcN8xZ23ZCeeGp4JzYi7HsSSsz5qdv"),
         )
     ],
@@ -51,7 +65,9 @@ tx1 = Transaction(
 
 tx2 = Transaction(
     version=1,
-    txins=[TxIn(to_spend=OutPoint(coinbase1.id, 0), unlock_sig="0", sequence=0)],
+    txins=[
+        TxIn(to_spend=OutPoint(coinbase1.id, 0), unlock_sig="0", sequence=0)
+    ],
     txouts=[
         TxOut(
             value=10_000_000,
@@ -63,7 +79,9 @@ tx2 = Transaction(
 
 tx3 = Transaction(
     version=1,
-    txins=[TxIn(to_spend=OutPoint(coinbase1.id, 0), unlock_sig="0", sequence=0)],
+    txins=[
+        TxIn(to_spend=OutPoint(coinbase1.id, 0), unlock_sig="0", sequence=0)
+    ],
     txouts=[
         TxOut(
             value=200_000_000,
@@ -75,7 +93,9 @@ tx3 = Transaction(
 
 tx4 = Transaction(
     version=1,
-    txins=[TxIn(to_spend=OutPoint(coinbase1.id, 0), unlock_sig="0", sequence=0)],
+    txins=[
+        TxIn(to_spend=OutPoint(coinbase1.id, 0), unlock_sig="0", sequence=0)
+    ],
     txouts=[
         TxOut(
             value=510_000,
@@ -87,7 +107,9 @@ tx4 = Transaction(
 
 tx5 = Transaction(
     version=1,
-    txins=[TxIn(to_spend=OutPoint(coinbase1.id, 1), unlock_sig="0", sequence=0)],
+    txins=[
+        TxIn(to_spend=OutPoint(coinbase1.id, 1), unlock_sig="0", sequence=0)
+    ],
     txouts=[
         TxOut(
             value=510_000,
@@ -107,7 +129,7 @@ def block1() -> Block:
         bits=24,
         nonce=10_126_761,
     )
-    block.txns=[coinbase1]
+    block.txns = [coinbase1]
     return block
 
 

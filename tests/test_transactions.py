@@ -17,12 +17,16 @@ def test_transaction_id(transaction1):  # type: ignore
     )
 
 
-def test_transaction_is_not_coinbase(transaction1, transaction2):  # type: ignore
+def test_transaction_is_not_coinbase(
+    transaction1, transaction2
+):  # type: ignore
     assert transaction1.is_coinbase is False
     assert transaction2.is_coinbase is False
 
 
-def test_transaction_is_coinbase(coinbase_transaction1, coinbase_transaction2):  # type: ignore
+def test_transaction_is_coinbase(
+    coinbase_transaction1, coinbase_transaction2
+):  # type: ignore
     assert coinbase_transaction1.is_coinbase is True
     assert coinbase_transaction2.is_coinbase is True
 
@@ -33,7 +37,15 @@ def test_transaction_validate(transaction1, transaction2):  # type: ignore
 
     tx = Transaction(
         version=1,
-        txins=[TxIn(to_spend=OutPoint(Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX), unlock_sig="0", sequence=0)],
+        txins=[
+            TxIn(
+                to_spend=OutPoint(
+                    Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX
+                ),
+                unlock_sig="0",
+                sequence=0,
+            )
+        ],
         txouts=[
             TxOut(
                 value=3_000_000_000,

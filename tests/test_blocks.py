@@ -90,7 +90,5 @@ def test_block_deserialize(block1, block2):  # type: ignore
     assert block_small.bits == block1.bits
     assert block_small.nonce == block1.nonce
     assert block_small.prev_block_hash == block1.prev_block_hash
-    print([tx.id for tx in block_small.txns])
-    print("=====")
     assert [tx.id for tx in block_small.txns] == [tx.id for tx in block1.txns]
     assert block_small.id == block1.id

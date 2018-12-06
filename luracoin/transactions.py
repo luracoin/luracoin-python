@@ -1,4 +1,4 @@
-from typing import List, NamedTuple, Union
+from typing import NamedTuple, Union
 
 from luracoin.config import Config
 from luracoin.helpers import little_endian, mining_reward, sha256d, var_int
@@ -10,12 +10,11 @@ OutPoint = NamedTuple(
 
 
 class TxIn:
-
     def __init__(
         self,
         to_spend: Union[OutPoint, None] = None,
         unlock_sig: str = None,
-        sequence: str = None,
+        sequence: int = None,
     ) -> None:
         self.to_spend = to_spend
         self.unlock_sig = unlock_sig
@@ -48,7 +47,6 @@ class TxIn:
 
 
 class TxOut:
-
     def __init__(self, value: int = None, to_address: str = None) -> None:
         self.value = value
         self.to_address = to_address
@@ -64,7 +62,6 @@ class TxOut:
 
 
 class Transaction:
-
     def __init__(
         self,
         version: int = 0,
@@ -79,7 +76,10 @@ class Transaction:
 
     @property
     def is_coinbase(self) -> bool:
-        return len(self.txins) == 1 and str(self.txins[0].to_spend.txid) == Config.COINBASE_TX_ID
+        return (
+            len(self.txins) == 1
+            and str(self.txins[0].to_spend.txid) == Config.COINBASE_TX_ID
+        )
 
     @property
     def id(self) -> str:
