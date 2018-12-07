@@ -22,3 +22,12 @@ def test_little_endian() -> None:
 def test_sha256d() -> None:
     # TODO: Test for sha256d
     pass
+
+
+def test_var_int_to_bytes() -> None:
+    # TODO: Test for var_int_to_bytes
+    pass
+
+
+def test_() -> None:
+    pass

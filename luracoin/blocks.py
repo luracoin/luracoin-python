@@ -230,4 +230,13 @@ class Block:
             )
 
     def validate(self) -> None:
-        pass
+        """
+        Validate:
+        1) POW
+        2) Coins supply
+        3) Transactions
+        4) Block Size
+        5) Reward + Fees
+        6) Timestamp
+        """
+        return True

@@ -33,6 +33,7 @@ def test_transaction_validate(transaction1, transaction2):  # type: ignore
     assert transaction1.validate() is True
     assert transaction2.validate() is True
 
+def test_transaction_invalid__reward():  # type: ignore
     tx = Transaction(
         version=1,
         txins=[
@@ -54,6 +55,41 @@ def test_transaction_validate(transaction1, transaction2):  # type: ignore
                 to_address=build_p2pkh("1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS"),
             ),
         ],
+        locktime=0,
+    )
+
+    assert tx.validate() is False
+
+
+def test_transaction_invalid__empty_txins():  # type: ignore
+    tx = Transaction(
+        version=1,
+        txins=[],
+        txouts=[
+            TxOut(
+                value=100_000,
+                to_address=build_p2pkh("1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS"),
+            ),
+        ],
+        locktime=0,
+    )
+
+    assert tx.validate() is False
+
+
+def test_transaction_invalid__empty_txouts():  # type: ignore
+    tx = Transaction(
+        version=1,
+        txins=[
+            TxIn(
+                to_spend=OutPoint(
+                    Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX
+                ),
+                unlock_sig="0",
+                sequence=0,
+            )
+        ],
+        txouts=[],
         locktime=0,
     )
 

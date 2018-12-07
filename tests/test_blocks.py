@@ -92,3 +92,12 @@ def test_block_deserialize(block1, block2):  # type: ignore
     assert block_small.prev_block_hash == block1.prev_block_hash
     assert [tx.id for tx in block_small.txns] == [tx.id for tx in block1.txns]
     assert block_small.id == block1.id
+
+
+def test_block_validate__pow(block1, block2):
+    pass
+
+
+def test_block_validate(block1, block2):  # type: ignore
+    assert block1.validate() is True
+    assert block2.validate() is True

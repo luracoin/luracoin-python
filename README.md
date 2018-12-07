@@ -26,6 +26,11 @@ For testing use ```pytest```
 pytest -v
 ```
 
+## Run commands
+```
+python -m luracoin.client COMAND_NAME
+```
+
 ## LevelDB 
 
 #### Block keys:
