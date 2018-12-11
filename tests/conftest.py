@@ -4,6 +4,8 @@ from luracoin.blocks import Block
 from luracoin.config import Config
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
 from luracoin.wallet import build_p2pkh
+from luracoin.pow import proof_of_work
+
 
 coinbase1 = Transaction(
     version=1,
@@ -127,7 +129,7 @@ def block1() -> Block:
         prev_block_hash=Config.COINBASE_TX_ID,
         timestamp=1_501_821_412,
         bits=24,
-        nonce=10_126_761,
+        nonce=0,
     )
     block.txns = [coinbase1]
     return block
@@ -135,12 +137,14 @@ def block1() -> Block:
 
 @pytest.fixture
 def block2() -> Block:
+    print("Hey")
+    print(proof_of_work(block1().id, 2))
     block = Block(
         version=1,
-        prev_block_hash=Config.COINBASE_TX_ID,
+        prev_block_hash=block1().id,
         timestamp=1_501_821_412,
         bits=24,
-        nonce=10_126_761,
+        nonce=76,
     )
     block.txns = [coinbase2, tx1, tx2, tx3, tx4, tx5]
     return block

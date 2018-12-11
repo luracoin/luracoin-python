@@ -1,9 +1,10 @@
 from luracoin.blocks import Block
+from luracoin.pow import valid_proof
 
 
 def test_block_ids(block1, block2):  # type: ignore
     assert block1.id == (
-        "8823303f8041cc303e52ca1c7d0533bffe09f63c51a86137f62219455f389518"
+        "8ab03cf125e66d916fb27a12fcd534a6f93f3af4b6a6dcc5286b8b12511e4b54"
     )
 
     assert block2.id == (
@@ -14,8 +15,8 @@ def test_block_ids(block1, block2):  # type: ignore
 def test_block_serialize(block1, block2):  # type: ignore
     assert block1.serialize() == (
         "ba77d89f010000000000000000000000000000000000000000000000000000000000"
-        "0000000000008823303f8041cc303e52ca1c7d0533bffe09f63c51a86137f6221945"
-        "5f38951818000000e4f98359a9859a00000001010001000000000000000000000000"
+        "0000000000008ab03cf125e66d916fb27a12fcd534a6f93f3af4b6a6dcc5286b8b12"
+        "511e4b5418000000e4f9835900000000000001010001000000000000000000000000"
         "0000000000000000000000000000000000000000ffffffff0100000000003005ed0b"
         "2000000003476a91500ff7ff008512170c57980f447dc24f5c52e2df03c88ac002f6"
         "859000000003476a915003ea6275ba0c6860ce74727f72617883099961a4388ac006"
@@ -95,7 +96,7 @@ def test_block_deserialize(block1, block2):  # type: ignore
 
 
 def test_block_validate__pow(block1, block2):
-    pass
+    assert valid_proof(last_proof=block1, proof=block2.nonce, difficulty=8)
 
 
 def test_block_validate(block1, block2):  # type: ignore
