@@ -29,6 +29,19 @@ class Block:
 
     @property
     def id(self) -> str:
+        return self.generate_hash()
+
+    def json(self):
+        return {
+            "id": self.id,
+            "version": self.version,
+            "prev_block_hash": self.prev_block_hash,
+            "timestamp": self.timestamp,
+            "bits": self.bits,
+            "nonce": self.nonce
+        }
+
+    def generate_hash(self) -> str:
         txns_ids = ""
         for t in self.txns:
             txns_ids = txns_ids + t.id

@@ -1,35 +1,30 @@
 import hashlib
 import time
+from luracoin.helpers import sha256d
+import json
 
-def proof_of_work(last_proof, difficulty):
+
+def proof_of_work(block, difficulty):
     """
-    Simple Proof of Work Algorithm:
-    - Find a number p' such that hash(pp') contains leading 4 zeroes, where p is the previous p'
-    - p is the previous proof, and p' is the new proof
-     :param last_proof: Proof of work of the previous block
-    :return: Proof of Work
+    Simple Proof of Work Algorithm
     """
-    proof = 0
     stop_loop = False
     while stop_loop is False:
-        proof += 1
-        stop_loop = valid_proof(last_proof, proof, difficulty)
-    return proof
+        block.nonce = block.nonce + 1
+        stop_loop = valid_proof(block.generate_hash(), difficulty)
 
-def valid_proof(last_proof, proof, difficulty):
+    print(json.dumps(block.json()))
+    return block.nonce
+
+def valid_proof(block_hash, difficulty):
     """
     Validates the Proof
-    :param last_proof: Previous Proof
-    :param proof: Current Proof
+    :param block_hash: Block hash
     :param difficulty: Number of 0's
     :return: True if correct, False if not.
     """
     target = "".join(["0" for d in range(difficulty)])
-
-    str_proof = str(last_proof) + str(proof)
-    guess = str_proof.encode()
-    guess_hash = hashlib.sha256(guess).hexdigest()
-    return guess_hash[:difficulty] == target
+    return block_hash[:difficulty] == target
 
 def validate_pow(block):
     return True
