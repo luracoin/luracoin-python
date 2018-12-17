@@ -129,22 +129,20 @@ def block1() -> Block:
         prev_block_hash=Config.COINBASE_TX_ID,
         timestamp=1_501_821_412,
         bits=24,
-        nonce=0,
+        nonce=2075,
     )
     block.txns = [coinbase1]
     return block
 
 
 @pytest.fixture
-def block2() -> Block:
-    print("Hey")
-    print(proof_of_work(block1().id, 2))
+def block2(block1) -> Block:
     block = Block(
         version=1,
-        prev_block_hash=block1().id,
+        prev_block_hash=block1.id,
         timestamp=1_501_821_412,
         bits=24,
-        nonce=76,
+        nonce=5811,
     )
     block.txns = [coinbase2, tx1, tx2, tx3, tx4, tx5]
     return block
