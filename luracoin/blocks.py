@@ -8,6 +8,7 @@ from luracoin.helpers import (
     var_int_to_bytes,
 )
 from luracoin.transactions import Transaction, OutPoint, TxIn, TxOut
+from luracoin.pow import valid_proof
 
 
 class Block:
@@ -16,7 +17,7 @@ class Block:
         version: int = None,
         prev_block_hash: str = None,
         timestamp: int = None,
-        bits: int = None,
+        bits: str = None,
         nonce: int = None,
         txns: list = [],
     ) -> None:
@@ -31,7 +32,7 @@ class Block:
     def id(self) -> str:
         return self.generate_hash()
 
-    def json(self):
+    def json(self) -> dict:
         return {
             "id": self.id,
             "version": self.version,
@@ -70,7 +71,6 @@ class Block:
         -> Nonce (6 bytes)
         """
         version = little_endian(num_bytes=4, data=self.version)
-        bits = little_endian(num_bytes=4, data=self.bits)
         timestamp = little_endian(num_bytes=4, data=self.timestamp)
         nonce = little_endian(num_bytes=6, data=self.nonce)
 
@@ -79,7 +79,7 @@ class Block:
             + version
             + self.prev_block_hash
             + self.id
-            + bits
+            + self.bits
             + timestamp
             + nonce
         )
@@ -109,7 +109,7 @@ class Block:
         self.version = little_endian_to_int(block_version)
         self.prev_block_hash = prev_hash
         self.timestamp = little_endian_to_int(timestamp)
-        self.bits = little_endian_to_int(bits)
+        self.bits = bits
         self.nonce = little_endian_to_int(nonce)
 
         block_body = block_serialized[172:]
@@ -242,14 +242,17 @@ class Block:
                 )
             )
 
-    def validate(self) -> None:
+    def validate(self) -> bool:
         """
         Validate:
-        1) POW
-        2) Coins supply
-        3) Transactions
-        4) Block Size
-        5) Reward + Fees
-        6) Timestamp
+        1) [X] POW
+        2) [ ] Coins supply
+        3) [ ] Transactions
+        4) [ ] Block Size
+        5) [ ] Reward + Fees
+        6) [ ] Timestamp
         """
+        if not valid_proof(self.id, self.bits):
+            return False
+
         return True

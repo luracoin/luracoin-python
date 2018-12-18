@@ -10,3 +10,4 @@ script:
   - flake8
   - mypy .
   - bash coverage.sh
+  - black . --check --diff

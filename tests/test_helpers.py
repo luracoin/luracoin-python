@@ -1,4 +1,4 @@
-from luracoin.helpers import little_endian, var_int
+from luracoin.helpers import little_endian, var_int, bits_to_target
 
 
 def test_var_int() -> None:
@@ -29,5 +29,23 @@ def test_var_int_to_bytes() -> None:
     pass
 
 
-def test_() -> None:
-    pass
+def test_bits_to_target() -> None:
+    assert bits_to_target("1d00ffff") == (
+        "00000000ffff0000000000000000000000000000000000000000000000000000"
+    )
+
+    assert bits_to_target("1731D97C") == (
+        "00000000000000000031D97C0000000000000000000000000000000000000000"
+    )
+
+    assert bits_to_target("17272fbd") == (
+        "000000000000000000272fbd0000000000000000000000000000000000000000"
+    )
+
+    assert bits_to_target("1b4766ed") == (
+        "00000000004766ed000000000000000000000000000000000000000000000000"
+    )
+
+    assert bits_to_target("1dffffff") == (
+        "000000ffffff0000000000000000000000000000000000000000000000000000"
+    )

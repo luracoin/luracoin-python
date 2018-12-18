@@ -33,6 +33,7 @@ def test_transaction_validate(transaction1, transaction2):  # type: ignore
     assert transaction1.validate() is True
     assert transaction2.validate() is True
 
+
 def test_transaction_invalid__reward():  # type: ignore
     tx = Transaction(
         version=1,
