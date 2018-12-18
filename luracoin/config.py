@@ -2,8 +2,9 @@ import os
 
 
 class Config:
-    # Wallet path
-    BASE_DIR = os.path.normpath(os.getcwd() + os.sep + os.pardir) + "/luracoin"
+    BASE_DIR = (
+        os.path.normpath(os.getcwd() + os.sep + os.pardir) + "/luracoin-python"
+    )
 
     WALLET_PATH = BASE_DIR + "/bin/wallet.dat"
 

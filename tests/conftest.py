@@ -5,7 +5,6 @@ from luracoin.config import Config
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
 from luracoin.wallet import build_p2pkh
 
-
 coinbase1 = Transaction(
     version=1,
     txins=[
