@@ -70,7 +70,7 @@ def test_transaction_invalid__empty_txins():  # type: ignore
             TxOut(
                 value=100_000,
                 to_address=build_p2pkh("1DNFUMhT4cm4qbZUrbAApN3yKJNUpRjrTS"),
-            ),
+            )
         ],
         locktime=0,
     )

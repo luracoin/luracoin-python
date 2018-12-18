@@ -39,7 +39,7 @@ class Block:
             "prev_block_hash": self.prev_block_hash,
             "timestamp": self.timestamp,
             "bits": self.bits,
-            "nonce": self.nonce
+            "nonce": self.nonce,
         }
 
     def generate_hash(self) -> str:
@@ -119,12 +119,12 @@ class Block:
             num_txs_serialized = block_body[0:2]
             num_txs_total_chars_len = 2
         else:
-            num_txs_serialized = block_body[2: num_bytes * 2]
+            num_txs_serialized = block_body[2 : num_bytes * 2]
             num_txs_total_chars_len = 2 + num_bytes * 2
 
         num_txs = little_endian_to_int(num_txs_serialized)
 
-        block_body = block_serialized[172 + num_txs_total_chars_len:]
+        block_body = block_serialized[172 + num_txs_total_chars_len :]
 
         for _ in range(num_txs):
             # - Version (2 bytes)
@@ -150,7 +150,7 @@ class Block:
                 num_inputs_total_chars_len = 2
             else:
                 num_inputs_serialized = block_body[
-                    2: bytes_for_num_inputs * 2
+                    2 : bytes_for_num_inputs * 2
                 ]
                 num_inputs_total_chars_len = 2 + bytes_for_num_inputs * 2
 
@@ -169,7 +169,7 @@ class Block:
                     unlock_sig_size_total_chars_len = 2
                 else:
                     unlock_sig_size_serialized = block_body[
-                        2: bytes_for_unlock_sig_size * 2
+                        2 : bytes_for_unlock_sig_size * 2
                     ]
                     unlock_sig_size_total_chars_len = (
                         2 + bytes_for_unlock_sig_size * 2
@@ -201,7 +201,7 @@ class Block:
                 num_outputs_total_chars_len = 2
             else:
                 num_outputs_serialized = block_body[
-                    2: bytes_for_num_outputs * 2
+                    2 : bytes_for_num_outputs * 2
                 ]
                 num_outputs_total_chars_len = 2 + bytes_for_num_outputs * 2
 
@@ -222,7 +222,7 @@ class Block:
                     script_size_total_chars_len = 2
                 else:
                     script_size_serialized = block_body[
-                        2: bytes_for_script_size * 2
+                        2 : bytes_for_script_size * 2
                     ]
                     script_size_total_chars_len = 2 + bytes_for_script_size * 2
 

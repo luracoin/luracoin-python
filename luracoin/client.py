@@ -16,7 +16,7 @@ from docopt import docopt
 
 
 def main(args):  # type: ignore
-    if args['mine']:
+    if args["mine"]:
         mine()
 
 
@@ -24,5 +24,5 @@ def mine():  # type: ignore
     pass
 
 
-if __name__ == '__main__':
-    main(docopt(__doc__, version='luracoin client 0.1'))  # type: ignore
+if __name__ == "__main__":
+    main(docopt(__doc__, version="luracoin client 0.1"))  # type: ignore

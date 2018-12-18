@@ -128,7 +128,7 @@ def block1() -> Block:
         prev_block_hash=Config.COINBASE_TX_ID,
         timestamp=1_501_821_412,
         bits="1e0fffff",
-        nonce=337176,
+        nonce=337_176,
     )
     block.txns = [coinbase1]
     return block
@@ -141,7 +141,7 @@ def block2(block1) -> Block:  # type: ignore
         prev_block_hash=block1.id,
         timestamp=1_501_821_412,
         bits="1e0fffff",
-        nonce=528602,
+        nonce=528_602,
     )
     block.txns = [coinbase2, tx1, tx2, tx3, tx4, tx5]
     return block
