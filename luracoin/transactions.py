@@ -44,9 +44,6 @@ class TxIn:
 
         return total
 
-    def deserialize(self) -> None:
-        pass
-
 
 class TxOut:
     def __init__(self, value: int = None, to_address: str = None) -> None:
@@ -58,9 +55,6 @@ class TxOut:
         script_pub_key = self.to_address
         script_pub_key_size = var_int(len(script_pub_key))
         return value + script_pub_key_size + script_pub_key
-
-    def deserialize(self) -> None:
-        pass
 
 
 class Transaction:
