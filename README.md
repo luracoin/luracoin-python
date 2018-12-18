@@ -1,5 +1,5 @@
 # Luracoin
-![](https://travis-ci.com/maguayo/luracoin-python.svg?branch=master)
+![](https://travis-ci.com/luracoin/luracoin-python.svg?branch=master)
 ![](https://img.shields.io/badge/code%20style-black-000000.svg)
 ![](https://img.shields.io/badge/status-in%20development-red.svg)
 
