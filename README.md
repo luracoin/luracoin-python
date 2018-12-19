@@ -5,6 +5,8 @@
 
 Luracoin Python implementation.
 
+I am creating this to learn more about cryptocurrencies. It is an __*educational project*__.
+
 ## Status
 Early development. The blockchain is not live yet.
 
