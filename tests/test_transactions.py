@@ -1,6 +1,6 @@
+from luracoin.config import Config
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
 from luracoin.wallet import build_p2pkh
-from luracoin.config import Config
 
 
 def test_transaction_serialize(transaction1):  # type: ignore

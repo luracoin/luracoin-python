@@ -7,8 +7,8 @@ from luracoin.helpers import (
     var_int,
     var_int_to_bytes,
 )
-from luracoin.transactions import Transaction, OutPoint, TxIn, TxOut
 from luracoin.pow import valid_proof
+from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
 
 
 class Block:

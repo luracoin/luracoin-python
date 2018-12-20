@@ -1,5 +1,16 @@
-from base58 import b58decode_check
+import hashlib
+import json
+import os
+import random
+from binascii import unhexlify
 
+import ecdsa
+from base58 import b58decode_check, b58encode_check
+from bip32utils import BIP32Key
+from mnemonic import Mnemonic
+
+from luracoin.config import Config
+from luracoin.exceptions import WalletAlreadyExistError
 from luracoin.helpers import little_endian
 
 
@@ -33,3 +44,60 @@ def build_p2pkh(address: str) -> str:
     # "<OP_DUP><OP_HASH160>len_push pub_key<OP_EQUALVERIFY><OP_CHECKSIG>"
     script = "76a9" + count_push + pub_key_hash + "88ac"
     return script
+
+
+def generate_random_wallet_input() -> str:
+    hexdigits = "0123456789ABCDEF"
+    myhex = "".join([hexdigits[random.randint(0, 0xF)] for _ in range(64)])
+    return myhex
+
+
+def create_wallet() -> dict:
+    path = Config.WALLET_PATH
+
+    if os.path.exists(path):
+        raise WalletAlreadyExistError(f"Wallet already exist in {path}")
+
+    bin_dir = Config.BASE_DIR + "/bin/"
+    if not os.path.exists(bin_dir):
+        os.makedirs(bin_dir)
+
+    wallet = generate_wallet()
+    with open(path, "wb") as f:
+        f.write(json.dumps(wallet).encode())
+
+    return wallet
+
+
+def generate_wallet() -> dict:
+    mnemo = Mnemonic("english")
+    data = generate_random_wallet_input()
+    code = mnemo.to_mnemonic(unhexlify(data))
+    seed = Mnemonic.to_seed(code, passphrase="LURA")
+    xprv = BIP32Key.fromEntropy(seed).ExtendedKey()
+    priv = BIP32Key.fromEntropy(seed).PrivateKey()
+    wif = BIP32Key.fromEntropy(seed).PublicKey()
+
+    signing_key = ecdsa.SigningKey.from_string(priv, curve=ecdsa.SECP256k1)
+    verifying_key = signing_key.get_verifying_key()
+
+    wallet = {
+        "input": data,
+        "mnemonic": code,
+        "seed": seed.hex(),
+        "xprv": xprv,
+        "private_key": priv.hex(),
+        "public_key": wif.hex(),
+        "verifying_key": verifying_key.to_string().hex(),
+        "address": pubkey_to_address(wif),
+    }
+    return wallet
+
+
+def pubkey_to_address(pubkey: bytes) -> str:
+    if "ripemd160" not in hashlib.algorithms_available:
+        raise RuntimeError("missing ripemd160 hash algorithm")
+
+    sha = hashlib.sha256(pubkey).digest()
+    ripe = hashlib.new("ripemd160", sha).digest()
+    return b58encode_check(b"\x00" + ripe)

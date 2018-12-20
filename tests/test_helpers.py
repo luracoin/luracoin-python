@@ -1,4 +1,4 @@
-from luracoin.helpers import little_endian, var_int, bits_to_target
+from luracoin.helpers import bits_to_target, little_endian, var_int, is_hex
 
 
 def test_var_int() -> None:
@@ -17,6 +17,59 @@ def test_little_endian() -> None:
     assert little_endian(num_bytes=3, data=15) == "0f0000"
     assert little_endian(num_bytes=2, data=19) == "1300"
     assert little_endian(num_bytes=1, data=19) == "13"
+
+
+def test_is_hex() -> None:
+    assert (
+        is_hex(
+            "C4490C4A562C73F32F97A216B41482AE4174471BA89BAF69846D8BF266F3A6E2"
+        )
+        is True
+    )
+
+    assert (
+        is_hex(
+            "eec0eaf1e71b1b20fa72e5f1b7e7c94b4c90351d3eca003a49493431fadf4a01"
+        )
+        is True
+    )
+
+    assert (
+        is_hex(
+            "a22b96d13846af2198de9fecd9d4076d1a8a5bd6686055041c90c8c5b9b644a9"
+        )
+        is True
+    )
+
+    assert (
+        is_hex(
+            "478db2b902797bd1d464a0553a7ba53c60a191439243451b7376688d1ae5a5f8"
+        )
+        is True
+    )
+
+    assert (
+        is_hex(
+            "5b55cae2711fa7495c38ecbe3ae459fe6a2542b424a983cc6ed9a785b2bd03fe"
+        )
+        is True
+    )
+
+    assert is_hex("5b55cae2711fa7495c38ecbe3ae459fe6a2542b424a983cc6") is False
+
+    assert (
+        is_hex(
+            "YOU8UZH507MOKZIB5c38ecbe3ae459fe6a2542b424a983cc6ed9a785b2bd03fe"
+        )
+        is False
+    )
+
+    assert (
+        is_hex(
+            "yw7zozr07x654wwg9e7b09dc6827f1ad48084801b8a602883c3d77ff07fa66ba"
+        )
+        is False
+    )
 
 
 def test_sha256d() -> None:
