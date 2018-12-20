@@ -46,13 +46,13 @@ def build_p2pkh(address: str) -> str:
     return script
 
 
-def generate_random_wallet_input():
+def generate_random_wallet_input() -> str:
     hexdigits = "0123456789ABCDEF"
     myhex = "".join([hexdigits[random.randint(0, 0xF)] for _ in range(64)])
     return myhex
 
 
-def create_wallet():
+def create_wallet() -> dict:
     path = Config.WALLET_PATH
 
     if os.path.exists(path):
@@ -69,7 +69,7 @@ def create_wallet():
     return wallet
 
 
-def generate_wallet():
+def generate_wallet() -> dict:
     mnemo = Mnemonic("english")
     data = generate_random_wallet_input()
     code = mnemo.to_mnemonic(unhexlify(data))

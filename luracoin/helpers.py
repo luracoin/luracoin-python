@@ -53,13 +53,13 @@ def mining_reward() -> int:
     return 50
 
 
-def is_hex(s):
+def is_hex(s: str) -> bool:
     try:
         int(s, 16)
     except ValueError:
         return False
     return len(s) % 2 == 0
- 
+
 
 def bits_to_target(bits: str) -> str:
     """
