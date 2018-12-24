@@ -20,6 +20,7 @@ It's easy and fun. We don't need performance yet, we need more contributors. I w
 - Block time every 5 min instead of 10 min.  
 - 4MB limit instead of 1MB.
 - Supply of 21 billion coins instead of 21 million.
+- No merkle tree
 
 
 ## Testing
