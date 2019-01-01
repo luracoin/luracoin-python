@@ -6,7 +6,6 @@ from luracoin.wallet import (
     generate_random_wallet_input,
     generate_wallet,
     pubkey_to_address,
-    address_to_pubkey,
 )
 
 
@@ -21,7 +20,7 @@ def test_generate_random_wallet_input() -> None:
 
 
 @pytest.fixture
-def test_generate_wallet() -> None:
+def test_generate_wallet() -> dict:
     wallet = generate_wallet()
     return wallet
 
@@ -76,18 +75,16 @@ def test_generate_wallet__check_mnemonic(test_generate_wallet):  # type: ignore
 
 
 def test_pubkey_to_address() -> None:
-    address = pubkey_to_address(
-        unhexlify(
-            "03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3"
-        )
+    pubkey_1 = (
+        "03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3"
     )
+    address = pubkey_to_address(unhexlify(pubkey_1))
     assert address == "1BjA85uVq73B55pSPMxNsLta6ZC5V3d82M"
 
-    address = pubkey_to_address(
-        unhexlify(
-            "02471b9c963dde49bc93eb46c773d92231576321f1a88821a65cf3a8c8b286af71"
-        )
+    pubkey_2 = (
+        "02471b9c963dde49bc93eb46c773d92231576321f1a88821a65cf3a8c8b286af71"
     )
+    address = pubkey_to_address(unhexlify(pubkey_2))
     assert address == "1De81fKXsre9MiruFZZzMJkaeuEptJgCP2"
 
 
