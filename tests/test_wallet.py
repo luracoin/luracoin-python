@@ -1,15 +1,13 @@
 import pytest
+from binascii import unhexlify
 
 from luracoin.helpers import is_hex
 from luracoin.wallet import (
     generate_random_wallet_input,
     generate_wallet,
     pubkey_to_address,
+    address_to_pubkey,
 )
-
-
-def test_address_to_pubkey() -> None:
-    assert True
 
 
 def test_build_p2pkh() -> None:
@@ -79,9 +77,18 @@ def test_generate_wallet__check_mnemonic(test_generate_wallet):  # type: ignore
 
 def test_pubkey_to_address() -> None:
     address = pubkey_to_address(
-        "03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3"
+        unhexlify(
+            "03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3"
+        )
     )
     assert address == "1BjA85uVq73B55pSPMxNsLta6ZC5V3d82M"
+
+    address = pubkey_to_address(
+        unhexlify(
+            "02471b9c963dde49bc93eb46c773d92231576321f1a88821a65cf3a8c8b286af71"
+        )
+    )
+    assert address == "1De81fKXsre9MiruFZZzMJkaeuEptJgCP2"
 
 
 def test_create_wallet() -> None:
