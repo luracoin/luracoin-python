@@ -51,7 +51,6 @@ def test_generate_wallet__check_public_key(  # type: ignore
     wallet = test_generate_wallet
     assert len(wallet["public_key"]) == 66
 
-
 def test_generate_wallet__check_private_key(  # type: ignore
     test_generate_wallet
 ) -> None:
