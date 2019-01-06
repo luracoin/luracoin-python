@@ -95,3 +95,53 @@ def test_transaction_invalid__empty_txouts():  # type: ignore
     )
 
     assert tx.validate() is False
+
+
+def test_transaction_invalid__unlocking():  # type: ignore
+    coinbase1 = Transaction(
+        version=1,
+        txins=[
+            TxIn(
+                to_spend=OutPoint(
+                    Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX
+                ),
+                unlock_sig="0",
+                sequence=0,
+            )
+        ],
+        txouts=[
+            TxOut(
+                value=3_000_000_000,
+                to_address=build_p2pkh("1QHxaBNsCtYXj8M6CUi7fUeNY2FE2m7t8e"),
+            ),
+            TxOut(
+                value=1_500_000_000,
+                to_address=build_p2pkh("16iFwTZFLhDVY3sK1K3oBRLNkJCjHBJv1E"),
+            ),
+            TxOut(
+                value=500_000_000,
+                to_address=build_p2pkh("1ByCQKMDiRM1cp14vrpz4HCBz7A6LJ5XJ8"),
+            ),
+        ],
+        locktime=0,
+    )
+
+    tx1 = Transaction(
+        version=1,
+        txins=[
+            TxIn(
+                to_spend=OutPoint(coinbase1.id, 0), unlock_sig="0", sequence=0
+            )
+        ],
+        txouts=[
+            TxOut(
+                value=2512,
+                to_address=build_p2pkh("15MBHcN8xZ23ZCeeGp4JzYi7HsSSsz5qdv"),
+            )
+        ],
+        locktime=0,
+    )
+
+    # TODO: Check the signature
+    assert True
+    assert tx1.validate() is True
