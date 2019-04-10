@@ -49,6 +49,24 @@ coinbase2 = Transaction(
     locktime=0,
 )
 
+coinbase3 = Transaction(
+    version=1,
+    txins=[
+        TxIn(
+            to_spend=OutPoint(Config.COINBASE_TX_ID, Config.COINBASE_TX_INDEX),
+            unlock_sig="2",
+            sequence=0,
+        )
+    ],
+    txouts=[
+        TxOut(
+            value=5_000_000_000,
+            to_address=build_p2pkh("1DsrJ4PPKTxTLCtr5TYDHrcWo3FZ2aog86"),
+        )
+    ],
+    locktime=0,
+)
+
 tx1 = Transaction(
     version=1,
     txins=[
@@ -143,6 +161,19 @@ def block2(block1) -> Block:  # type: ignore
         nonce=528_602,
     )
     block.txns = [coinbase2, tx1, tx2, tx3, tx4, tx5]
+    return block
+
+
+@pytest.fixture
+def block3(block2) -> Block:  # type: ignore
+    block = Block(
+        version=1,
+        prev_block_hash=block2.id,
+        timestamp=1_501_821_412,
+        bits="1e0fffff",
+        nonce=1_940_600,
+    )
+    block.txns = [coinbase3]
     return block
 
 
