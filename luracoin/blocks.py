@@ -6,8 +6,8 @@ from luracoin.helpers import (
     sha256d,
     var_int,
     var_int_to_bytes,
+    bits_to_target,
 )
-from luracoin.pow import valid_proof
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
 
 
@@ -30,7 +30,17 @@ class Block:
 
     @property
     def id(self) -> str:
+        """
+        Validates the Proof
+        :param block_hash: Block hash
+        :param difficulty: Number of 0's
+        :return: True if correct, False if not.
+        """
         return self.generate_hash()
+
+    @property
+    def is_valid_proof(self):
+        return int(self.id, 16) <= int(bits_to_target(self.bits), 16)
 
     def json(self) -> dict:
         return {
@@ -43,9 +53,7 @@ class Block:
         }
 
     def generate_hash(self) -> str:
-        txns_ids = ""
-        for t in self.txns:
-            txns_ids = txns_ids + t.id
+        txns_ids = "".join(map(lambda t: t.id, self.txns))
 
         string_to_hash = (
             str(self.version)
@@ -252,7 +260,7 @@ class Block:
         5) [ ] Reward + Fees
         6) [ ] Timestamp
         """
-        if not valid_proof(self.id, self.bits):
+        if not self.is_valid_proof:
             return False
 
         return True

@@ -1,5 +1,4 @@
 from luracoin.blocks import Block
-from luracoin.pow import valid_proof
 
 
 def test_block_ids(block1, block2):  # type: ignore
@@ -96,8 +95,8 @@ def test_block_deserialize(block1, block2):  # type: ignore
 
 
 def test_block_validate__pow(block1, block2):  # type: ignore
-    assert valid_proof(block1.id, block1.bits) is True
-    assert valid_proof(block2.id, block2.bits) is True
+    assert block1.is_valid_proof is True
+    assert block2.is_valid_proof is True
 
 
 def test_block_validate(block1, block2):  # type: ignore
