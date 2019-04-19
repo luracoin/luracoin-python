@@ -26,7 +26,7 @@ def main(args):  # type: ignore
         mine()
 
 
-def mine():
+def mine() -> None:
     print("Not implemented yet.")
 
 

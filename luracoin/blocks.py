@@ -39,7 +39,7 @@ class Block:
         return self.generate_hash()
 
     @property
-    def is_valid_proof(self):
+    def is_valid_proof(self) -> bool:
         return int(self.id, 16) <= int(bits_to_target(self.bits), 16)
 
     def json(self) -> dict:
