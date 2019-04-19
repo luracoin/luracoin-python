@@ -37,7 +37,7 @@ python -m luracoin.client COMAND_NAME
 #### Generate address
 
 ```
-python -m luracoin.client generateAddress
+python -m luracoin.client generateWallet
 ```
 
 Response:
