@@ -6,11 +6,10 @@ from luracoin.blocks import Block
 from luracoin.config import Config
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
 from luracoin.wallet import build_p2pkh
-import pytest
 
 
 @pytest.fixture(scope="session")
-def blockchain():
+def blockchain() -> None:
     Config.DATA_DIR = Config.BASE_DIR + "/tests/data/"
     Config.BLOCKS_DIR = Config.DATA_DIR + "blocks/"
 
@@ -159,7 +158,7 @@ tx5 = Transaction(
 
 
 @pytest.fixture
-def block1(blockchain) -> Block:
+def block1(blockchain) -> Block:  # type: ignore
     block = Block(
         version=1,
         prev_block_hash=Config.COINBASE_TX_ID,

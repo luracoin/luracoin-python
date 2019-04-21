@@ -1,5 +1,3 @@
-import pytest
-
 from luracoin.chain import get_current_file_number, get_current_file_name
 
 
