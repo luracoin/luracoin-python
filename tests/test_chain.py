@@ -3,7 +3,7 @@ import pytest
 from luracoin.chain import get_current_file_number, get_current_file_name
 
 
-def test_get_current_file_number():
+def test_get_current_file_number(blockchain):
     assert get_current_file_number() == "000000"
 
 

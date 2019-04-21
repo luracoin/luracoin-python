@@ -1,9 +1,29 @@
 import pytest
+import os
+import shutil
 
 from luracoin.blocks import Block
 from luracoin.config import Config
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
 from luracoin.wallet import build_p2pkh
+import pytest
+
+
+@pytest.fixture(scope="session")
+def blockchain():
+    Config.DATA_DIR = Config.BASE_DIR + "/tests/data/"
+    Config.BLOCKS_DIR = Config.DATA_DIR + "blocks/"
+
+    folder = Config.BLOCKS_DIR
+    if os.path.exists(folder):
+        shutil.rmtree(folder)
+    os.makedirs(folder)
+
+    yield None
+
+    if os.path.exists(folder):
+        shutil.rmtree(folder)
+
 
 coinbase1 = Transaction(
     version=1,
@@ -139,7 +159,7 @@ tx5 = Transaction(
 
 
 @pytest.fixture
-def block1() -> Block:
+def block1(blockchain) -> Block:
     block = Block(
         version=1,
         prev_block_hash=Config.COINBASE_TX_ID,
@@ -152,7 +172,7 @@ def block1() -> Block:
 
 
 @pytest.fixture
-def block2(block1) -> Block:  # type: ignore
+def block2(blockchain, block1) -> Block:  # type: ignore
     block = Block(
         version=1,
         prev_block_hash=block1.id,
@@ -165,7 +185,7 @@ def block2(block1) -> Block:  # type: ignore
 
 
 @pytest.fixture
-def block3(block2) -> Block:  # type: ignore
+def block3(blockchain, block2) -> Block:  # type: ignore
     block = Block(
         version=1,
         prev_block_hash=block2.id,
