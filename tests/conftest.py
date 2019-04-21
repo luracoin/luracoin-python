@@ -2,6 +2,7 @@ import pytest
 import os
 import shutil
 
+from typing import Generator
 from luracoin.blocks import Block
 from luracoin.config import Config
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
@@ -9,7 +10,7 @@ from luracoin.wallet import build_p2pkh
 
 
 @pytest.fixture(scope="session")
-def blockchain() -> None:
+def blockchain() -> Generator:
     Config.DATA_DIR = Config.BASE_DIR + "/tests/data/"
     Config.BLOCKS_DIR = Config.DATA_DIR + "blocks/"
 
