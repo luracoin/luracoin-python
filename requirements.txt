@@ -16,7 +16,7 @@ mypy==0.630
 mypy-extensions==0.4.1
 pickleDB==0.6.2
 pluggy==0.7.1
-plyvel==1.0.4
+plyvel==1.0.5
 pprintpp==0.3.0
 py==1.6.0
 pycodestyle==2.3.1
