@@ -264,3 +264,7 @@ class Block:
             return False
 
         return True
+
+    def save_to_chain(self) -> None:
+        if self.validate():
+            pass
