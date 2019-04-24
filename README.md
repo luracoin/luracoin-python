@@ -1,6 +1,7 @@
 # Luracoin
 ![](https://travis-ci.com/luracoin/luracoin-python.svg?branch=master)
 ![](https://img.shields.io/badge/code%20style-black-000000.svg)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 ![](https://img.shields.io/badge/status-in%20development-red.svg)
 
 Luracoin Python implementation.
