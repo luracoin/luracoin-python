@@ -297,5 +297,5 @@ class Block:
 
         # process_block_transactions(deserialize_blk)
 
-    def create(self, propagate=True) -> None:
+    def create(self, propagate: bool = True) -> None:
         pass
