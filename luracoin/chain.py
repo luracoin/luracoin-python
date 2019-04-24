@@ -1,6 +1,6 @@
 import plyvel
 from luracoin.config import Config
-from luracoin.helpers import little_endian
+from luracoin.helpers import little_endian, get_blk_file_size
 
 
 def get_current_file_number() -> str:
@@ -14,6 +14,10 @@ def get_current_file_number() -> str:
     else:
         file_number.decode("utf-8")
 
+    file_name = get_current_file_name(file_number)
+    if get_blk_file_size(file_name) >= Config.MAX_FILE_SIZE:
+        file_number = next_blk_file(file_number)
+
     db.close()
 
     return file_number
@@ -21,6 +25,11 @@ def get_current_file_number() -> str:
 
 def get_current_file_name(file_number: str) -> str:
     return f"blk{file_number}.dat"
+
+
+def get_current_blk_file() -> str:
+    number = get_current_file_number()
+    return get_current_file_name(number)
 
 
 def serialise_block_to_save(serialised_block: str) -> str:
@@ -45,3 +54,14 @@ def serialise_block_to_save(serialised_block: str) -> str:
     )
 
     return serialised_block
+
+
+def next_blk_file(current_blk_file: str) -> str:
+    """
+    Increases by one the blk file name, for example:
+    blk000132.dat => blk000133.dat
+
+    :param current_blk_file: <String> Actual file (eg. 000001)
+    :return: <String> Next file (eg. 000002)
+    """
+    return str(int(current_blk_file) + 1).zfill(6)

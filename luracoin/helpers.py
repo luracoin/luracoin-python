@@ -1,6 +1,8 @@
+import os
 import binascii
 import hashlib
 from typing import Union
+from luracoin.config import Config
 
 
 def sha256d(s: Union[str, bytes]) -> str:
@@ -83,3 +85,11 @@ def bits_to_target(bits: str) -> str:
     padding = "".join(["0" for d in range(padding_number)])
 
     return padding + bits[2:8] + target_exponent
+
+
+def get_blk_file_size(file_name: str) -> int:
+    path = Config.BLOCKS_DIR + file_name
+    try:
+        return os.path.getsize(path)
+    except FileNotFoundError:
+        return 0
