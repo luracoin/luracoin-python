@@ -1,8 +1,13 @@
+from typing import Generator
+
 from luracoin.blocks import Block
+from luracoin.config import Config
 from luracoin.chain import (
     get_current_file_number,
     get_current_file_name,
     serialise_block_to_save,
+    next_blk_file,
+    get_current_blk_file,
 )
 
 
@@ -57,3 +62,31 @@ def test_serialise_block_to_save() -> None:
         tx.id for tx in block_read_from_file.txns
     ]
     assert block.id == block_read_from_file.id
+
+
+def test_next_blk_file() -> None:
+    assert next_blk_file("000001") == "000002"
+    assert next_blk_file("000210") == "000211"
+    assert next_blk_file("999998") == "999999"
+
+
+def test_blk_file_number_increase_when_file_surpases_the_max_size_allowed(
+    blockchain: Generator
+) -> None:
+    Config.MAX_FILE_SIZE = 1000  # Override the max file size for the test
+
+    current_file = get_current_blk_file()
+    current_file_number = get_current_file_number()
+
+    assert current_file_number == "000000"
+
+    path = f"{Config.BLOCKS_DIR}{current_file}"
+    content_length = Config.MAX_FILE_SIZE + 100  # Surpass
+
+    f = open(path, "a")
+    f.write("".join("x" for _ in range(content_length)))
+    f.close()
+
+    actual_file_number = get_current_file_number()
+
+    assert actual_file_number == "000001"
