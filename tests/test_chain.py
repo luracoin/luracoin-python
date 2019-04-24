@@ -73,7 +73,7 @@ def test_next_blk_file() -> None:
 def test_blk_file_number_increase_when_file_surpases_the_max_size_allowed(
     blockchain: Generator
 ) -> None:
-    Config.MAX_FILE_SIZE = 1000  # Override the max file size for the test
+    Config.MAX_FILE_SIZE = 2000  # Override the max file size for the test
 
     current_file = get_current_blk_file()
     current_file_number = get_current_file_number()

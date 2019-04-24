@@ -1,3 +1,4 @@
+import plyvel
 from luracoin.config import Config
 from luracoin.exceptions import BlockNotValidError
 from luracoin.helpers import (
@@ -9,7 +10,11 @@ from luracoin.helpers import (
     bits_to_target,
 )
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
-from luracoin.chain import serialise_block_to_save
+from luracoin.chain import (
+    serialise_block_to_save,
+    get_current_file_number,
+    get_current_blk_file,
+)
 
 
 class Block:
@@ -266,6 +271,31 @@ class Block:
 
         return True
 
-    def save_to_chain(self) -> None:
-        if self.validate():
-            serialise_block_to_save(self.serialize())
+    def save(self) -> None:
+        """
+        Save the block in the file system. And update some values on LevelDB.
+        TODO: Save 'b' key/value and process transactions.
+        """
+        if not self.validate():
+            raise ValueError("Invalid block")
+
+        serialized_block = serialise_block_to_save(self.serialize())
+        current_file = get_current_blk_file()
+
+        filename = Config.BLOCKS_DIR + current_file
+        with open(filename, "ab+") as f:
+            f.write(serialized_block.encode())
+
+        current_file_number = get_current_file_number()
+
+        db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
+        # Save the current file number
+        db.put(b"l", current_file_number.encode())
+
+        # WIP: db.put(b"b")) -- 'b' + 32-byte block hash -> block index record.
+        db.close()
+
+        # process_block_transactions(deserialize_blk)
+
+    def create(self, propagate=True) -> None:
+        pass
