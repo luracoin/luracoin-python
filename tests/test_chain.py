@@ -1,3 +1,5 @@
+from typing import Generator
+
 from luracoin.blocks import Block
 from luracoin.config import Config
 from luracoin.chain import (
@@ -62,14 +64,14 @@ def test_serialise_block_to_save() -> None:
     assert block.id == block_read_from_file.id
 
 
-def test_next_blk_file():
+def test_next_blk_file() -> None:
     assert next_blk_file("000001") == "000002"
     assert next_blk_file("000210") == "000211"
     assert next_blk_file("999998") == "999999"
 
 
 def test_blk_file_number_increase_when_file_surpases_the_max_size_allowed(
-    blockchain
+    blockchain: Generator
 ) -> None:
     Config.MAX_FILE_SIZE = 1000  # Override the max file size for the test
 

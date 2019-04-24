@@ -111,7 +111,7 @@ def test_bits_to_target() -> None:
     )
 
 
-def test_get_blk_file_size(blockchain) -> None:
+def test_get_blk_file_size(blockchain) -> None:  # type: ignore
     testfilename = "testfile.txt"
     testfile = f"{Config.BLOCKS_DIR}{testfilename}"
     content_length = 1000

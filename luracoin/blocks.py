@@ -9,11 +9,7 @@ from luracoin.helpers import (
     bits_to_target,
 )
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
-from luracoin.chain import (
-    serialise_block_to_save,
-    get_current_file_name,
-    get_current_file_number,
-)
+from luracoin.chain import serialise_block_to_save
 
 
 class Block:
@@ -272,5 +268,4 @@ class Block:
 
     def save_to_chain(self) -> None:
         if self.validate():
-            # serialised_block = serialise_block_to_save(self.serialize())
-            pass
+            serialise_block_to_save(self.serialize())
