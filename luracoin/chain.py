@@ -7,20 +7,22 @@ def get_current_file_number() -> str:
     # Get the current file
     db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
     file_number = db.get(b"l")
+    db.close()
 
     # If there is not a current file we'll start by '000000'
     if file_number is None or file_number == "" or file_number == b"":
         file_number = "000000"
     else:
-        file_number.decode("utf-8")
+        file_number = file_number.decode("utf-8")
 
     file_name = get_current_file_name(file_number)
     if get_blk_file_size(file_name) >= Config.MAX_FILE_SIZE:
         file_number = next_blk_file(file_number)
 
-    db.close()
-
-    return file_number
+    try:
+        return file_number.decode("utf-8")
+    except AttributeError:
+        return str(file_number)
 
 
 def get_current_file_name(file_number: str) -> str:

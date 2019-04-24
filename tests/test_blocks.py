@@ -1,4 +1,6 @@
 from luracoin.blocks import Block
+from luracoin.chain import get_current_blk_file, serialise_block_to_save
+from luracoin.config import Config
 
 
 def test_block_ids(block1, block2):  # type: ignore
@@ -102,3 +104,23 @@ def test_block_validate__pow(block1, block2):  # type: ignore
 def test_block_validate(block1, block2):  # type: ignore
     assert block1.validate() is True
     assert block2.validate() is True
+
+
+def test_block_save(blockchain, block1, block2, block3):  # type: ignore
+    block1.save()
+
+    f = open(Config.BLOCKS_DIR + get_current_blk_file(), "r")
+    content = f.read()
+    f.close()
+
+    serialized_block1 = serialise_block_to_save(block1.serialize())
+    assert content == serialized_block1
+
+    block2.save()
+
+    f = open(Config.BLOCKS_DIR + get_current_blk_file(), "r")
+    content = f.read()
+    f.close()
+
+    serialized_block2 = serialise_block_to_save(block2.serialize())
+    assert content == serialized_block1 + serialized_block2
