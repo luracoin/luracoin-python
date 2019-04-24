@@ -1,11 +1,4 @@
-from luracoin.config import Config
-from luracoin.helpers import (
-    bits_to_target,
-    little_endian,
-    var_int,
-    is_hex,
-    get_blk_file_size,
-)
+from luracoin.helpers import bits_to_target, little_endian, var_int, is_hex
 
 
 def test_var_int() -> None:
@@ -109,15 +102,3 @@ def test_bits_to_target() -> None:
     assert bits_to_target("1dffffff") == (
         "000000ffffff0000000000000000000000000000000000000000000000000000"
     )
-
-
-def test_get_blk_file_size(blockchain) -> None:
-    testfilename = "testfile.txt"
-    testfile = f"{Config.BLOCKS_DIR}{testfilename}"
-    content_length = 1000
-
-    f = open(testfile, "a")
-    f.write("".join("x" for _ in range(content_length)))
-    f.close()
-
-    assert get_blk_file_size(testfilename) == content_length
