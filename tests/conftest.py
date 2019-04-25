@@ -5,8 +5,7 @@ import shutil
 from typing import Generator
 from luracoin.blocks import Block
 from luracoin.config import Config
-from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
-from luracoin.wallet import build_p2pkh
+from luracoin.transactions import Transaction
 from tests.constants import (
     COINBASE1,
     COINBASE2,
