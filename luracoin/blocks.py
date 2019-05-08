@@ -276,7 +276,7 @@ class Block:
         Save the block in the file system. And update some values on LevelDB.
         TODO: Save 'b' key/value and process transactions.
 
-        'l' -> Actual file number (eg. blk00045.dat)  
+        'l' -> Actual file number (eg. blk00045.dat)
         'b' -> Current block height
         'c' -> Validation process
 
@@ -287,7 +287,7 @@ class Block:
             To what extent this block is validated.
             In which file, and where in that file, the block data is stored.
 
-        'b' + 6-byte block height -> 
+        'b' + 6-byte block height ->
             6-byte File name in which the block data is stored.
             32-byte block hash
         """
