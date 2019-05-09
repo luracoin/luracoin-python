@@ -1,4 +1,3 @@
-import json
 import os
 import binascii
 import hashlib
@@ -105,12 +104,16 @@ def block_index_disk_read(serialised_block_index_data: str) -> dict:
     It's saved serialised, so in order to read it we need to deserialise it.
 
     :param serialised_block_index_data: Each index includes:
-        The block header.
-        The height.
-        The number of transactions.
-        To what extent this block is validated.
-        In which file, and where in that file, the block data is stored.
+        The block header. (82 bytes)
+        The height. (VARINT)
+        The number of transactions. (VARINT)
+        In which file the block data is stored. (VARINT)
     """
+    # Block header: 82 bytes
+    # Height: Varint
+    # Num transactions: Varint
+    # File name: 3 bytes
+    # Is block validated: 1 byte
     block_index = {}
     cursor = 0
 
