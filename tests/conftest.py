@@ -18,7 +18,7 @@ from tests.constants import (
 )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def blockchain() -> Generator:
     Config.DATA_DIR = Config.BASE_DIR + "/tests/data/"
     Config.BLOCKS_DIR = Config.DATA_DIR + "blocks/"

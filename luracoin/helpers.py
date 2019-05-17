@@ -174,7 +174,7 @@ def block_index_disk_read(serialised_block_index_data: str) -> dict:
     return block_index
 
 
-def block_index_disk_write(block_index_data: str) -> str:
+def block_index_disk_write(block_index_data: dict) -> str:
     # Header
     serialised = block_index_data["header"]
 

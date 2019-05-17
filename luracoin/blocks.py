@@ -1,4 +1,5 @@
 import plyvel
+from typing import Any
 from luracoin.config import Config
 from luracoin.exceptions import BlockNotValidError
 from luracoin.helpers import (
@@ -8,6 +9,7 @@ from luracoin.helpers import (
     var_int,
     var_int_to_bytes,
     bits_to_target,
+    block_index_disk_write,
 )
 from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
 from luracoin.chain import (
@@ -36,29 +38,6 @@ class Block:
 
     @property
     def id(self) -> str:
-        """
-        Validates the Proof
-        :param block_hash: Block hash
-        :param difficulty: Number of 0's
-        :return: True if correct, False if not.
-        """
-        return self.generate_hash()
-
-    @property
-    def is_valid_proof(self) -> bool:
-        return int(self.id, 16) <= int(bits_to_target(self.bits), 16)
-
-    def json(self) -> dict:
-        return {
-            "id": self.id,
-            "version": self.version,
-            "prev_block_hash": self.prev_block_hash,
-            "timestamp": self.timestamp,
-            "bits": self.bits,
-            "nonce": self.nonce,
-        }
-
-    def generate_hash(self) -> str:
         txns_ids = "".join(map(lambda t: t.id, self.txns))
 
         string_to_hash = (
@@ -73,6 +52,39 @@ class Block:
         block_id = sha256d(string_to_hash)
         return block_id
 
+    @property
+    def is_valid_proof(self) -> bool:
+        return int(self.id, 16) <= int(bits_to_target(self.bits), 16)
+
+    def header(self, serialised=False) -> Any:
+        """
+        Block header, serialised or as a dict
+        """
+        if serialised:
+            version = little_endian(num_bytes=4, data=self.version)
+            timestamp = little_endian(num_bytes=4, data=self.timestamp)
+            nonce = little_endian(num_bytes=6, data=self.nonce)
+
+            return (
+                version
+                + self.prev_block_hash
+                + self.id
+                + self.bits
+                + timestamp
+                + nonce
+            )
+
+        header = {
+            "version": self.version,
+            "prev_block_hash": self.prev_block_hash,
+            "id": self.id,
+            "bits": self.bits,
+            "timestamp": self.timestamp,
+            "nonce": self.nonce,
+        }
+
+        return header
+
     def serialize(self) -> str:
         """
         Magic bytes (4 bytes)
@@ -84,19 +96,7 @@ class Block:
         -> Timestamp (4 bytes)
         -> Nonce (6 bytes)
         """
-        version = little_endian(num_bytes=4, data=self.version)
-        timestamp = little_endian(num_bytes=4, data=self.timestamp)
-        nonce = little_endian(num_bytes=6, data=self.nonce)
-
-        total = (
-            Config.MAGIC_BYTES
-            + version
-            + self.prev_block_hash
-            + self.id
-            + self.bits
-            + timestamp
-            + nonce
-        )
+        total = Config.MAGIC_BYTES + self.header(serialised=True)
 
         # Tx_count
         tx_count = var_int(len(self.txns))
@@ -304,8 +304,36 @@ class Block:
         current_file_number = get_current_file_number()
 
         db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
+
         # Save the current file number
         db.put(b"l", current_file_number.encode())
+
+        # Get and increment the current block height
+        current_block_height = int(db.get(b"b", 0))
+        current_block_height += 1
+        db.put(b"b", str(current_block_height).encode())
+
+        # Save block index record with the header and other serialised data
+        db.put(
+            b"b" + self.id.encode(),
+            block_index_disk_write(
+                {
+                    "header": self.header(serialised=True),
+                    "height": current_block_height,
+                    "txns": len(self.txns),
+                    "file": current_file_number,
+                    "is_validated": True,
+                }
+            ).encode(),
+        )
+
+        db.put(
+            b"b" + str(current_block_height).encode(),
+            (
+                little_endian(num_bytes=3, data=int(current_file_number))
+                + self.id
+            ).encode(),
+        )
 
         # WIP: db.put(b"b")) -- 'b' + 32-byte block hash -> block index record.
         db.close()
