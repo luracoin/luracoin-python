@@ -1,3 +1,4 @@
+import plyvel
 from luracoin.blocks import Block
 from luracoin.chain import get_current_blk_file, serialise_block_to_save
 from luracoin.config import Config
@@ -106,7 +107,9 @@ def test_block_validate(block1, block2):  # type: ignore
     assert block2.validate() is True
 
 
-def test_block_save(blockchain, block1, block2, block3):  # type: ignore
+def test_block_save_into_disk(  # type: ignore
+    blockchain, block1, block2, block3
+):
     block1.save()
 
     f = open(Config.BLOCKS_DIR + get_current_blk_file(), "r")
@@ -124,3 +127,74 @@ def test_block_save(blockchain, block1, block2, block3):  # type: ignore
 
     serialized_block2 = serialise_block_to_save(block2.serialize())
     assert content == serialized_block1 + serialized_block2
+
+
+def test_block_save_leveldb_keys(  # type: ignore
+    blockchain, block1, block2, block3
+):
+    block1.save()
+    db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
+    try:
+        assert db.get(b"l") == b"000000"
+        assert int(db.get(b"b")) == 1
+        assert db.get(b"b1").decode() == "000000" + block1.id
+        assert db.get(b"b" + block1.id.encode()).decode() == (
+            "0100000000000000000000000000000000000000000000000000000000000000"
+            "00000000000000c88505d2ddb65ad8300cda93a69bb19c8ab6fa721ad14e3683"
+            "383489841e0fffffe4f98359182505000000010100000001"
+        )
+    finally:
+        db.close()
+
+    block2.save()
+    db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
+    try:
+        assert db.get(b"l") == b"000000"
+        assert int(db.get(b"b")) == 2
+        assert db.get(b"b2").decode() == "000000" + block2.id
+        assert db.get(b"b" + block2.id.encode()).decode() == (
+            "01000000000000c88505d2ddb65ad8300cda93a69bb19c8ab6fa721ad14e3683"
+            "38348984000003702a732e82a86303552b0c056bfcbd410447af85065ed7fe5a"
+            "b1f812451e0fffffe4f98359da1008000000020600000001"
+        )
+    finally:
+        db.close()
+
+
+def test_block_headers(blockchain, block1, block2, block3):  # type: ignore
+    assert block1.header()["version"] == block1.version
+    assert block1.header()["prev_block_hash"] == block1.prev_block_hash
+    assert block1.header()["id"] == block1.id
+    assert block1.header()["bits"] == block1.bits
+    assert block1.header()["timestamp"] == block1.timestamp
+    assert block1.header()["nonce"] == block1.nonce
+
+    assert block2.header()["version"] == block2.version
+    assert block2.header()["prev_block_hash"] == block2.prev_block_hash
+    assert block2.header()["id"] == block2.id
+    assert block2.header()["bits"] == block2.bits
+    assert block2.header()["timestamp"] == block2.timestamp
+    assert block2.header()["nonce"] == block2.nonce
+
+    assert block3.header()["version"] == block3.version
+    assert block3.header()["prev_block_hash"] == block3.prev_block_hash
+    assert block3.header()["id"] == block3.id
+    assert block3.header()["bits"] == block3.bits
+    assert block3.header()["timestamp"] == block3.timestamp
+    assert block3.header()["nonce"] == block3.nonce
+
+    assert block1.header(serialised=True) == (
+        "01000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000c88505d2ddb65ad8300cda93a69bb19c8ab6fa721ad14e368338348984"
+        "1e0fffffe4f98359182505000000"
+    )
+    assert block2.header(serialised=True) == (
+        "01000000000000c88505d2ddb65ad8300cda93a69bb19c8ab6fa721ad14e36833834"
+        "8984000003702a732e82a86303552b0c056bfcbd410447af85065ed7fe5ab1f81245"
+        "1e0fffffe4f98359da1008000000"
+    )
+    assert block3.header(serialised=True) == (
+        "01000000000003702a732e82a86303552b0c056bfcbd410447af85065ed7fe5ab1f8"
+        "12454089c3d979b89975604d3c56a042589e1abd2307fa69e2fb56f68c7d9287ce09"
+        "1e0fffffe4f98359789c1d000000"
+    )

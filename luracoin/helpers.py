@@ -93,3 +93,105 @@ def get_blk_file_size(file_name: str) -> int:
         return os.path.getsize(path)
     except FileNotFoundError:
         return 0
+
+
+def block_index_disk_read(serialised_block_index_data: str) -> dict:
+    """
+    Everytime you have a block into the database the client will save a record
+    on LevelDB that will include the basic information, for example, the
+    Height, name of the file in which the data is stored, etc...
+
+    It's saved serialised, so in order to read it we need to deserialise it.
+
+    :param serialised_block_index_data: Each index includes:
+        The block header. (82 bytes)
+        The height. (VARINT)
+        The number of transactions. (VARINT)
+        In which file the block data is stored. (VARINT)
+    """
+    # Block header: 82 bytes
+    # Height: Varint
+    # Num transactions: Varint
+    # File name: 3 bytes
+    # Is block validated: 1 byte
+    block_index: dict = {}
+    cursor = 0
+
+    # HEADER
+    block_index["header"] = serialised_block_index_data[cursor:164]
+    cursor = 164
+    total_length_data = len(serialised_block_index_data)
+
+    # HEIGHT
+    num_bytes = var_int_to_bytes(
+        serialised_block_index_data[cursor : cursor + 2]
+    )
+    if num_bytes == 1:
+        height_serialised = serialised_block_index_data[cursor : cursor + 2]
+        height_serialised_len = 2
+    else:
+        cursor += 2  # The first byte is the control one
+        height_serialised = serialised_block_index_data[
+            cursor : cursor + (num_bytes * 2)
+        ]
+        height_serialised_len = num_bytes * 2
+
+    block_index["height"] = little_endian_to_int(height_serialised)
+    cursor += height_serialised_len
+
+    # NUMBER OF TRANSACTIONS
+    num_bytes = var_int_to_bytes(
+        serialised_block_index_data[cursor : cursor + 2]
+    )
+    if num_bytes == 1:
+        num_txns_serialised = serialised_block_index_data[cursor : cursor + 2]
+        num_txns_serialised_len = 2
+    else:
+        cursor += 2  # The first byte is the control one
+        num_txns_serialised = serialised_block_index_data[
+            cursor : cursor + (num_bytes * 2)
+        ]
+        num_txns_serialised_len = num_bytes * 2
+
+    block_index["txns"] = little_endian_to_int(num_txns_serialised)
+    cursor += num_txns_serialised_len
+
+    # FILE NAME
+    file = little_endian_to_int(
+        serialised_block_index_data[cursor : cursor + 6]
+    )
+    block_index["file"] = str(file).zfill(6)
+    cursor += 6
+
+    # IS VALIDATED
+    is_validated = little_endian_to_int(
+        serialised_block_index_data[cursor : cursor + 2]
+    )
+    block_index["is_validated"] = True if is_validated == 1 else False
+    cursor += 2
+
+    assert total_length_data == cursor
+    return block_index
+
+
+def block_index_disk_write(block_index_data: dict) -> str:
+    # Header
+    serialised = block_index_data["header"]
+
+    # Height
+    serialised += var_int(block_index_data["height"])
+
+    # Number of transactions
+    serialised += var_int(block_index_data["txns"])
+
+    # File name
+    serialised += little_endian(
+        num_bytes=3, data=int(block_index_data["file"])
+    )
+
+    # Is validated
+    serialised += little_endian(
+        num_bytes=1, data=int(block_index_data["is_validated"])
+    )
+
+    return serialised
