@@ -107,9 +107,9 @@ def test_block_validate(block1, block2):  # type: ignore
     assert block2.validate() is True
 
 
-def test_block_save_into_disk(
+def test_block_save_into_disk(  # type: ignore
     blockchain, block1, block2, block3
-):  # type: ignore
+):
     block1.save()
 
     f = open(Config.BLOCKS_DIR + get_current_blk_file(), "r")
@@ -129,9 +129,9 @@ def test_block_save_into_disk(
     assert content == serialized_block1 + serialized_block2
 
 
-def test_block_save_leveldb_keys(
+def test_block_save_leveldb_keys(  # type: ignore
     blockchain, block1, block2, block3
-):  # type: ignore
+):
     block1.save()
     db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
     try:

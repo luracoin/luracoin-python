@@ -114,7 +114,7 @@ def block_index_disk_read(serialised_block_index_data: str) -> dict:
     # Num transactions: Varint
     # File name: 3 bytes
     # Is block validated: 1 byte
-    block_index = {}
+    block_index: dict = {}
     cursor = 0
 
     # HEADER

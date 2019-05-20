@@ -56,7 +56,7 @@ class Block:
     def is_valid_proof(self) -> bool:
         return int(self.id, 16) <= int(bits_to_target(self.bits), 16)
 
-    def header(self, serialised=False) -> Any:
+    def header(self, serialised: bool = False) -> Any:
         """
         Block header, serialised or as a dict
         """
