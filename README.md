@@ -89,10 +89,3 @@ Response:
         Output.
 
 ```
-
-## TODO
-- [ ] Mining - Generate empty blocks
-- [ ] Use leveldb to save the blocks and blockchain state
-- [ ] UTXO Set
-- [ ] Send transactions and save the, on the mempool
-- [ ] Mining - Generate blocks with transactions
