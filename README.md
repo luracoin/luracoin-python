@@ -17,9 +17,11 @@ Early development. The blockchain is not live yet.
 It's easy and fun. We don't need performance yet, we need more contributors. I will also create a Go implementation.
 
 #### Diferences with Bitcoin 
-- 2 more bytes on the header (Nonce).  
-- Block time every 5 min instead of 10 min.  
-- 4MB limit instead of 1MB.
+- 2 more bytes on the header (Nonce).
+- The Coinbase can be spend after 7 blocks.
+- Only P2PKH.
+- Block time every 15 min instead of 10 min. (WIP)
+- The blocksize instead of 1MB, will start at 8MB with an increase of 4% every 8640 blocks (3 months)
 - Supply of 21 billion coins instead of 21 million.
 - No merkle tree
 

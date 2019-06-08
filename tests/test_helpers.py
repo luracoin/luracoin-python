@@ -7,7 +7,27 @@ from luracoin.helpers import (
     get_blk_file_size,
     block_index_disk_read,
     block_index_disk_write,
+    bytes_to_signing_key,
 )
+
+
+def test_bytes_to_signing_key(blockchain):
+    private_key = (
+        b"JRh3y\xf3\xcfg\x8d\xea.\x91\xeb?\xed\xe3u\x04\x84[R\x9c\x97\x87\x8f"
+        b"\xc6I\x8b(w\xd5\xb1"
+    )
+
+    private_key = bytes_to_signing_key(private_key=private_key)
+    verifying_key = private_key.get_verifying_key()
+
+    assert private_key.to_string() == private_key
+    assert private_key.to_string().hex() == (
+        "4a52683379f3cf678dea2e91eb3fede37504845b529c97878fc6498b2877d5b1"
+    )
+    assert verifying_key.to_string().hex() == (
+        "5c440bc46d316dbb244bb57e39142f13a1ca7e02d27d46e5cf90fdb98eaf5c1eab11"
+        "c4af165e4ce3eb0652f8d937620804fe15201c00a7466f56237810988db1"
+    )
 
 
 def test_block_index_disk_read() -> None:

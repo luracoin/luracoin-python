@@ -1,4 +1,5 @@
 import os
+import ecdsa
 import binascii
 import hashlib
 from typing import Union
@@ -195,3 +196,7 @@ def block_index_disk_write(block_index_data: dict) -> str:
     )
 
     return serialised
+
+
+def bytes_to_signing_key(private_key: bytes) -> ecdsa.SigningKey:
+    return ecdsa.SigningKey.from_string(private_key, curve=ecdsa.SECP256k1)

@@ -1,37 +1,85 @@
+import ecdsa
 from luracoin.config import Config
-from luracoin.transactions import OutPoint, Transaction, TxIn, TxOut
-from luracoin.wallet import build_p2pkh
+from luracoin.transactions import (
+    OutPoint,
+    Transaction,
+    TxIn,
+    TxOut,
+    transaction_chainstate_serialise,
+    transaction_chainstate_deserialise,
+    build_message,
+    build_script_sig,
+    verify_signature,
+    is_valid_unlocking_script,
+    deserialize_unlocking_script,
+    sign_transaction,
+)
+from luracoin.wallet import build_p2pkh, pubkey_to_address, address_to_pubkey
+from tests.constants import COINBASE2, COINBASE1
+from tests.transactions.constants import (
+    TRANSACTION1,
+    TRANSACTION2,
+    TRANSACTION3,
+    TRANSACTION4,
+    TRANSACTION5,
+    TRANSACTION6,
+    TRANSACTION7,
+)
+from luracoin.helpers import bytes_to_signing_key
 
 
-def test_transaction_serialize(transaction1):  # type: ignore
-    assert transaction1.serialize() == (
-        "0100014ac727f587761a17f5a3b63de589959989c655b579d261361ebaa287954440"
-        "a5000000000100000000001d0090000000000003476a915002fb168b47d7cb54b07c"
-        "7a4c4f7c005811f0a775d88ac"
+def test_transaction_validate():
+    assert TRANSACTION1.validate() is True
+    assert TRANSACTION2.validate() is True
+    assert TRANSACTION3.validate() is True
+    assert TRANSACTION4.validate() is True
+    assert TRANSACTION5.validate() is True
+    assert TRANSACTION6.validate() is True
+    assert TRANSACTION7.validate() is False
+
+
+def test_invalid_signature():
+    assert is_valid_unlocking_script(
+        unlocking_script=TRANSACTION1.txins[0].unlock_sig,
+        outpoint=TRANSACTION1.txins[0].to_spend,
     )
+    assert TRANSACTION1.validate() is True
 
-
-def test_transaction_id(transaction1):  # type: ignore
-    assert transaction1.id == (
-        "151b3b83f5a976279416b00200717120261d377632b5fef66cff076d34330383"
+    assert is_valid_unlocking_script(
+        unlocking_script=TRANSACTION2.txins[0].unlock_sig,
+        outpoint=TRANSACTION2.txins[0].to_spend,
     )
+    assert TRANSACTION2.validate() is True
 
+    assert is_valid_unlocking_script(
+        unlocking_script=TRANSACTION3.txins[0].unlock_sig,
+        outpoint=TRANSACTION3.txins[0].to_spend,
+    )
+    assert TRANSACTION3.validate() is True
 
-def test_transaction_is_not_coinbase(  # type: ignore
-    transaction1, transaction2
-):
-    assert transaction1.is_coinbase is False
-    assert transaction2.is_coinbase is False
+    assert is_valid_unlocking_script(
+        unlocking_script=TRANSACTION4.txins[0].unlock_sig,
+        outpoint=TRANSACTION4.txins[0].to_spend,
+    )
+    assert TRANSACTION4.validate() is True
 
+    assert is_valid_unlocking_script(
+        unlocking_script=TRANSACTION5.txins[0].unlock_sig,
+        outpoint=TRANSACTION5.txins[0].to_spend,
+    )
+    assert TRANSACTION5.validate() is True
 
-def test_transaction_is_coinbase(coinbase_tx1, coinbase_tx2):  # type: ignore
-    assert coinbase_tx1.is_coinbase is True
-    assert coinbase_tx2.is_coinbase is True
+    assert is_valid_unlocking_script(
+        unlocking_script=TRANSACTION6.txins[0].unlock_sig,
+        outpoint=TRANSACTION6.txins[0].to_spend,
+    )
+    assert TRANSACTION6.validate() is True
 
-
-def test_transaction_validate(transaction1, transaction2):  # type: ignore
-    assert transaction1.validate() is True
-    assert transaction2.validate() is True
+    assert not is_valid_unlocking_script(
+        unlocking_script=TRANSACTION7.txins[0].unlock_sig,
+        outpoint=TRANSACTION7.txins[0].to_spend,
+    )
+    assert TRANSACTION7.validate() is False
 
 
 def test_transaction_invalid__reward():  # type: ignore
@@ -142,6 +190,4 @@ def test_transaction_invalid__unlocking():  # type: ignore
         locktime=0,
     )
 
-    # TODO: Check the signature
-    assert True
-    assert tx1.validate() is True
+    assert tx1.validate() is False

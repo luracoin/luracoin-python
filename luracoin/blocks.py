@@ -335,10 +335,76 @@ class Block:
             ).encode(),
         )
 
-        # WIP: db.put(b"b")) -- 'b' + 32-byte block hash -> block index record.
         db.close()
 
-        # process_block_transactions(deserialize_blk)
+        process_block_transactions(self)
 
     def create(self, propagate: bool = True) -> None:
         pass
+
+
+def process_block_transactions(block):
+    """
+    Add outputs to the chainstate and delete the inputs used.
+    """
+    for transaction in block.txns:
+        for tx_spent in transaction.txins:
+            if tx_spent.to_spend.txid != Config.COINBASE_TX_ID:
+                print(
+                    f"Remove from chainstate: {tx_spent.to_spend.txid} -> {tx_spent.to_spend.txout_idx}"
+                )
+
+        # add_tx_to_chainstate(tx, int(block.txns[0].txins[0].unlock_sig))
+        print(
+            f"Add to chainstate {transaction} {int(block.txns[0].txins[0].unlock_sig)}"
+        )
+
+
+'''
+def process_block_transactions(block):
+    """
+    Add outputs to the chainstate and delete the inputs used.
+    """
+    for tx in block.txns:
+        for tx_spent in tx.txins:
+            if tx_spent.to_spend.txid != 0:
+                remove_tx_from_chainstate(
+                    tx_spent.to_spend.txid, tx_spent.to_spend.txout_idx
+                )
+
+        add_tx_to_chainstate(tx, int(block.txns[0].txins[0].unlock_sig))
+
+
+def remove_tx_from_chainstate(tx: str, vout: int) -> None:
+    """
+    Remove UTXO from the chainstate.
+
+    :param tx: Transaction ID
+    :param vout: Which output
+    """
+    db = plyvel.DB(Config.DATA_DIR + "chainstate", create_if_missing=True)
+    db.delete(b"c" + tx.encode() + str(vout).encode())
+    db.close()
+
+
+def read_tx_from_chainstate(tx: str) -> dict:
+    """
+    Read a transaction from the LevelDB Chainstate. And returns a Dictionary
+    with all the information.
+    """
+    tx_info = {
+        "version": int.from_bytes(
+            binascii.unhexlify(tx[0:2]), byteorder="little"
+        ),
+        "coinbase": int.from_bytes(
+            binascii.unhexlify(tx[2:4]), byteorder="little"
+        ),
+        "height": int.from_bytes(
+            binascii.unhexlify(tx[4:12]), byteorder="little"
+        ),
+        "output": tx[12:],
+    }
+
+    # print(json.dumps(tx_info, indent=4))
+    return tx_info
+'''
