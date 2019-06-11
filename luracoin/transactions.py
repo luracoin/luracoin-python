@@ -1,5 +1,7 @@
 import plyvel
+import msgpack
 import ecdsa
+import json
 from typing import NamedTuple, Union
 import binascii
 from binascii import unhexlify
@@ -13,6 +15,7 @@ from luracoin.helpers import (
     var_int,
     little_endian_to_int,
     bytes_to_signing_key,
+    var_int_to_bytes,
 )
 
 # Used to represent the specific output within a transaction.
@@ -32,31 +35,15 @@ class TxIn:
         self.unlock_sig = unlock_sig
         self.sequence = sequence
 
-    def serialize(self) -> str:
-        tx_id = self.to_spend.txid
+    def json(self) -> dict:
+        return {
+            "to_spend": self.to_spend,
+            "unlock_sig": self.unlock_sig,
+            "sequence": self.sequence,
+        }
 
-        if self.to_spend.txid == 0:
-            tx_id = Config.COINBASE_TX_ID
-
-        if self.to_spend.txout_idx == Config.COINBASE_TX_INDEX:
-            vout = Config.COINBASE_TX_INDEX
-        else:
-            vout = little_endian(  # type: ignore
-                num_bytes=4, data=self.to_spend.txout_idx
-            )
-
-        script_sig = self.unlock_sig
-        if isinstance(script_sig, bytes):
-            script_sig = script_sig.hex()
-        script_sig_size = var_int(len(script_sig))
-
-        sequence = little_endian(num_bytes=4, data=self.sequence)
-
-        total = (
-            str(tx_id) + vout + str(script_sig_size) + script_sig + sequence
-        )
-
-        return total
+    def serialize(self) -> bytes:
+        return msgpack.packb(self.json(), use_bin_type=True)
 
 
 class TxOut:
@@ -64,11 +51,11 @@ class TxOut:
         self.value = value
         self.to_address = to_address
 
-    def serialize(self) -> str:
-        value = little_endian(num_bytes=8, data=self.value)
-        script_pub_key = self.to_address
-        script_pub_key_size = var_int(len(script_pub_key))
-        return value + script_pub_key_size + script_pub_key
+    def json(self) -> dict:
+        return {"value": self.value, "to_address": self.to_address}
+
+    def serialize(self) -> bytes:
+        return msgpack.packb(self.json(), use_bin_type=True)
 
 
 class Transaction:
@@ -91,12 +78,53 @@ class Transaction:
             and str(self.txins[0].to_spend.txid) == Config.COINBASE_TX_ID
         )
 
+    def json(self) -> dict:
+        return {
+            "version": self.version,
+            "txins": [txin.json() for txin in self.txins],
+            "txouts": [txout.json() for txout in self.txouts],
+            "locktime": self.locktime,
+        }
+
+    def serialize(self) -> bytes:
+        return msgpack.packb(self.json(), use_bin_type=True)
+
+    def deserialize(self, serialized_tx):
+        deserialized_tx = msgpack.unpackb(
+            serialized_tx, use_list=False, raw=False
+        )
+        self.version = deserialized_tx["version"]
+        self.locktime = deserialized_tx["locktime"]
+
+        txins = []
+        for txin in deserialized_tx["txins"]:
+            deserialized_txin = TxIn()
+            print(txin["to_spend"])
+            deserialized_txin.to_spend = OutPoint(
+                txid=txin["to_spend"][0], txout_idx=txin["to_spend"][1]
+            )
+            deserialized_txin.unlock_sig = txin["unlock_sig"]
+            deserialized_txin.sequence = txin["sequence"]
+
+            txins.append(deserialized_txin)
+
+        txouts = []
+        for txout in deserialized_tx["txouts"]:
+            deserialized_txout = TxOut()
+            deserialized_txout.value = txout["value"]
+            deserialized_txout.to_address = txout["to_address"]
+
+            txouts.append(deserialized_txout)
+
+        self.txins = txins
+        self.txouts = txouts
+
     @property
     def id(self) -> str:
         """
         The ID will be the hash SHA256 of all the txins and txouts.
         """
-        msg = ""
+        msg = b""
         for x in self.txins:
             msg = msg + x.serialize()
         for y in self.txouts:
@@ -111,24 +139,6 @@ class Transaction:
         bitcoin.stackexchange.com/questions/37093/what-goes-in-to-the-message-of-a-transaction-signature
         """
         return self.id
-
-    def serialize(self) -> str:
-        # Version
-        serialized_tx = little_endian(num_bytes=2, data=self.version)
-
-        # INPUTS:
-        serialized_tx += var_int(len(self.txins))
-
-        for txin in self.txins:
-            serialized_tx += txin.serialize()
-
-        # OUTPUTS:
-        serialized_tx += var_int(len(self.txouts))
-
-        for txout in self.txouts:
-            serialized_tx += txout.serialize()
-
-        return serialized_tx
 
     def validate(self) -> bool:
         """

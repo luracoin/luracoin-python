@@ -4,6 +4,7 @@ from luracoin.blocks import Block
 from luracoin.chain import get_current_blk_file, serialise_block_to_save
 from luracoin.config import Config
 from luracoin.pow import proof_of_work
+from tests.transactions.constants import COINBASE1
 from tests.blocks.constants import (
     BLOCK1,
     BLOCK1_ID,
@@ -33,31 +34,37 @@ from tests.blocks.constants import (
 
 
 def test_blocks_validate_nonces():
+    BLOCK1.nonce -= 1
     proof = proof_of_work(BLOCK1)
     assert BLOCK1.is_valid_proof
     assert proof == BLOCK1_VALID_NONCE
     assert BLOCK1.id == BLOCK1_ID
 
+    BLOCK2.nonce -= 1
     proof = proof_of_work(BLOCK2)
     assert BLOCK2.is_valid_proof
     assert proof == BLOCK2_VALID_NONCE
     assert BLOCK2.id == BLOCK2_ID
 
+    BLOCK3.nonce -= 1
     proof = proof_of_work(BLOCK3)
     assert BLOCK3.is_valid_proof
     assert proof == BLOCK3_VALID_NONCE
     assert BLOCK3.id == BLOCK3_ID
 
+    BLOCK4.nonce -= 1
     proof = proof_of_work(BLOCK4)
     assert BLOCK4.is_valid_proof
     assert proof == BLOCK4_VALID_NONCE
     assert BLOCK4.id == BLOCK4_ID
 
+    BLOCK5.nonce -= 1
     proof = proof_of_work(BLOCK5)
     assert BLOCK5.is_valid_proof
     assert proof == BLOCK5_VALID_NONCE
     assert BLOCK5.id == BLOCK5_ID
 
+    BLOCK6.nonce -= 1
     proof = proof_of_work(BLOCK6)
     assert BLOCK6.is_valid_proof
     assert proof == BLOCK6_VALID_NONCE
@@ -71,52 +78,6 @@ def test_block_ids():
     assert BLOCK4.id == BLOCK4_ID
     assert BLOCK5.id == BLOCK5_ID
     assert BLOCK6.id == BLOCK6_ID
-
-
-def test_block_serialize():
-    assert BLOCK1.serialize() == BLOCK1_SERIALISED
-    assert BLOCK2.serialize() == BLOCK2_SERIALISED
-    assert BLOCK3.serialize() == BLOCK3_SERIALISED
-    assert BLOCK4.serialize() == BLOCK4_SERIALISED
-    assert BLOCK5.serialize() == BLOCK5_SERIALISED
-    assert BLOCK6.serialize() == BLOCK6_SERIALISED
-
-
-def test_block_deserialize(block1, block2):  # type: ignore
-    block = Block()
-    block.deserialize(BLOCK1_SERIALISED)
-
-    assert block.version == BLOCK1.version
-    assert block.timestamp == BLOCK1.timestamp
-    assert block.bits == BLOCK1.bits
-    assert block.nonce == BLOCK1.nonce
-    assert block.prev_block_hash == BLOCK1.prev_block_hash
-    assert [tx.id for tx in block.txns] == [tx.id for tx in BLOCK1.txns]
-    assert block.id == BLOCK1.id
-
-    block2 = Block()
-    block2.deserialize(BLOCK2_SERIALISED)
-
-    assert block2.version == BLOCK2.version
-    assert block2.timestamp == BLOCK2.timestamp
-    assert block2.bits == BLOCK2.bits
-    assert block2.nonce == BLOCK2.nonce
-    assert block2.prev_block_hash == BLOCK2.prev_block_hash
-    assert [tx.id for tx in block2.txns] == [tx.id for tx in BLOCK2.txns]
-    assert block2.id == BLOCK2.id
-
-    block5 = Block()
-    block5.deserialize(BLOCK5_SERIALISED)
-
-    assert block5.version == BLOCK5.version
-    assert block5.timestamp == BLOCK5.timestamp
-    assert block5.bits == BLOCK5.bits
-    assert block5.nonce == BLOCK5.nonce
-    assert block5.prev_block_hash == BLOCK5.prev_block_hash
-    assert sorted([tx.id for tx in block5.txns]) == sorted(
-        [tx.id for tx in BLOCK5.txns]
-    )
-    assert block5.id == BLOCK5.id
 
 
 def test_block_validate__pow(block1, block2):  # type: ignore
