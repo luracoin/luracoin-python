@@ -29,3 +29,4 @@ toml==0.10.0
 typed-ast==1.1.0
 git+https://github.com/trezor/python-mnemonic
 bip32utils
+msgpack==0.6.1
