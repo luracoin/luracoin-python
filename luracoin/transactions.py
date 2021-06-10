@@ -1,4 +1,3 @@
-import plyvel
 import msgpack
 import ecdsa
 import json
@@ -9,67 +8,28 @@ from binascii import unhexlify
 from luracoin.wallet import pubkey_to_address
 from luracoin.config import Config
 from luracoin.helpers import (
-    little_endian,
     mining_reward,
     sha256d,
-    var_int,
-    little_endian_to_int,
     bytes_to_signing_key,
-    var_int_to_bytes,
+    little_endian_to_int
 )
-
-# Used to represent the specific output within a transaction.
-OutPoint = NamedTuple(
-    "OutPoint", [("txid", Union[str, int]), ("txout_idx", Union[str, int])]
-)
-
-
-class TxIn:
-    def __init__(
-        self,
-        to_spend: Union[OutPoint, None] = None,
-        unlock_sig: str = None,
-        sequence: int = None,
-    ) -> None:
-        self.to_spend = to_spend
-        self.unlock_sig = unlock_sig
-        self.sequence = sequence
-
-    def json(self) -> dict:
-        return {
-            "to_spend": self.to_spend,
-            "unlock_sig": self.unlock_sig,
-            "sequence": self.sequence,
-        }
-
-    def serialize(self) -> bytes:
-        return msgpack.packb(self.json(), use_bin_type=True)
-
-
-class TxOut:
-    def __init__(self, value: int = None, to_address: str = None) -> None:
-        self.value = value
-        self.to_address = to_address
-
-    def json(self) -> dict:
-        return {"value": self.value, "to_address": self.to_address}
-
-    def serialize(self) -> bytes:
-        return msgpack.packb(self.json(), use_bin_type=True)
-
 
 class Transaction:
     def __init__(
         self,
-        version: int = 0,
-        txins: list = [],
-        txouts: list = [],
-        locktime: int = 0,
+        chain: int = 0,
+        nonce: int = 0,
+        fee: int = 0,
+        value: int = 0,
+        to_address: str = None,
+        unlock_sig: str = None,
     ) -> None:
-        self.version = version
-        self.txins = txins
-        self.txouts = txouts
-        self.locktime = locktime
+        self.chain = chain
+        self.nonce = nonce
+        self.fee = fee
+        self.value = value
+        self.to_address = to_address
+        self.unlock_sig = unlock_sig
 
     @property
     def is_coinbase(self) -> bool:
@@ -80,44 +40,39 @@ class Transaction:
 
     def json(self) -> dict:
         return {
-            "version": self.version,
-            "txins": [txin.json() for txin in self.txins],
-            "txouts": [txout.json() for txout in self.txouts],
-            "locktime": self.locktime,
+            "chain": self.chain,
+            "nonce": self.nonce,
+            "fee": self.fee,
+            "value": self.value,
+            "to_address": self.to_address,
+            "unlock_sig": self.unlock_sig,
         }
 
-    def serialize(self) -> bytes:
-        return msgpack.packb(self.json(), use_bin_type=True)
+    def serialize(self, to_sign=False) -> bytes:
+        chain = self.chain.to_bytes(1, byteorder="little", signed=False)
+        nonce = self.nonce.to_bytes(4, byteorder="little", signed=False)
+        fee = self.fee.to_bytes(4, byteorder="little", signed=False)
+        value = self.value.to_bytes(8, byteorder="little", signed=False)
+        to_address = str.encode(self.to_address)
+        
+        if self.unlock_sig:
+            unlock_sig = str.encode(self.unlock_sig)
 
-    def deserialize(self, serialized_tx):
-        deserialized_tx = msgpack.unpackb(
-            serialized_tx, use_list=False, raw=False
-        )
-        self.version = deserialized_tx["version"]
-        self.locktime = deserialized_tx["locktime"]
+        serialized = chain + nonce + fee + value + to_address
 
-        txins = []
-        for txin in deserialized_tx["txins"]:
-            deserialized_txin = TxIn()
-            print(txin["to_spend"])
-            deserialized_txin.to_spend = OutPoint(
-                txid=txin["to_spend"][0], txout_idx=txin["to_spend"][1]
-            )
-            deserialized_txin.unlock_sig = txin["unlock_sig"]
-            deserialized_txin.sequence = txin["sequence"]
+        if not to_sign and self.unlock_sig:
+            serialized += unlock_sig
 
-            txins.append(deserialized_txin)
+        return serialized
 
-        txouts = []
-        for txout in deserialized_tx["txouts"]:
-            deserialized_txout = TxOut()
-            deserialized_txout.value = txout["value"]
-            deserialized_txout.to_address = txout["to_address"]
-
-            txouts.append(deserialized_txout)
-
-        self.txins = txins
-        self.txouts = txouts
+    def deserialize(self, serialized_hex: str):
+        self.chain = little_endian_to_int(serialized_hex[0:2])
+        self.nonce = little_endian_to_int(serialized_hex[2:10])
+        self.fee = little_endian_to_int(serialized_hex[10:18])
+        self.value = little_endian_to_int(serialized_hex[18:34])
+        self.to_address = binascii.unhexlify(serialized_hex[34:102]).decode()
+        if len(serialized_hex) > 102:
+            self.unlock_sig = binascii.unhexlify(serialized_hex[102:]).decode()
 
     @property
     def id(self) -> str:
@@ -150,25 +105,6 @@ class Transaction:
         - Value has to be equal or less than the spending transaction
         - Valid unlocking code
         """
-        if not self.txins or not self.txouts:
-            return False
-
-        total_value = 0
-        for to in self.txouts:
-            total_value = total_value + to.value
-
-        if self.is_coinbase and total_value > (
-            mining_reward() * Config.BELUSHIS_PER_COIN
-        ):
-            return False
-
-        if not self.is_coinbase:
-            for txin in self.txins:
-                if not is_valid_unlocking_script(
-                    unlocking_script=txin.unlock_sig, outpoint=txin.to_spend
-                ):
-                    return False
-
         return True
 
     def save(self, block_height: int) -> None:
@@ -194,81 +130,10 @@ class Transaction:
         'B' -> 32-byte block hash: the block hash up to which the database
         represents the unspent transaction outputs
         """
-        for index, output in enumerate(self.txouts):
-            outputs = transaction_chainstate_serialise(
-                transaction=self, output=output, block_height=block_height
-            )
-
-            db = plyvel.DB(
-                Config.DATA_DIR + "chainstate", create_if_missing=True
-            )
-            db.put(
-                b"c" + self.id.encode() + str(index).encode(), outputs.encode()
-            )
-            db.close()
+        pass
 
 
-def transaction_chainstate_deserialise(
-    serialised_transaction_data: str
-) -> dict:
-    """
-    Deserialise the transactio from the chainstate and returns a dictionary.
-    The fields are the following:
-        # Version: 1 bytes
-        # Coinbase: 1 bytes
-        # Height: 4 bytes
-        # Value: 8 bytes
-        # Address: The content left
-    """
-    tx: dict = {}
-    cursor = 0
-    total_length_data = len(serialised_transaction_data)
-
-    # HEADER
-    tx["version"] = little_endian_to_int(
-        serialised_transaction_data[cursor : cursor + 2]
-    )
-    cursor += 2
-
-    tx["is_coinbase"] = little_endian_to_int(
-        serialised_transaction_data[cursor : cursor + 2]
-    )
-    cursor += 2
-
-    tx["height"] = little_endian_to_int(
-        serialised_transaction_data[cursor : cursor + 8]
-    )
-    cursor += 8
-
-    tx["value"] = little_endian_to_int(
-        serialised_transaction_data[cursor : cursor + 16]
-    )
-    cursor += 16
-
-    tx["to_address"] = serialised_transaction_data[cursor:total_length_data]
-
-    return tx
-
-
-def transaction_chainstate_serialise(  # type: ignore
-    transaction, output, block_height
-) -> None:
-    version = little_endian(num_bytes=1, data=transaction.version)
-
-    if transaction.is_coinbase:
-        coinbase = little_endian(num_bytes=1, data=1)
-    else:
-        coinbase = little_endian(num_bytes=1, data=0)
-
-    height = little_endian(num_bytes=4, data=int(block_height))
-    output_content = (
-        little_endian(num_bytes=8, data=int(output.value)) + output.to_address
-    )
-
-    return version + coinbase + height + output_content
-
-
-def build_message(outpoint: OutPoint, pub_key: str) -> str:
+def build_message(outpoint, pub_key: str) -> str:
     """
     TODO: https://bitcoin.stackexchange.com/questions/37093/what-goes-in-to-the-message-of-a-transaction-signature
     """
@@ -279,9 +144,7 @@ def build_script_sig(signature: str, public_key: str) -> str:
     """
     <VARINT>SIGNATURE<VARINT>PUBLIC_KEY
     """
-    signature_size = little_endian(num_bytes=1, data=len(signature))
-    pub_key_size = little_endian(num_bytes=1, data=len(public_key))
-    return str(signature_size) + signature + str(pub_key_size) + public_key
+    return signature + public_key
 
 
 def verify_signature(message: str, public_key: str, signature: str) -> bool:
@@ -290,36 +153,29 @@ def verify_signature(message: str, public_key: str, signature: str) -> bool:
 
 
 def deserialize_unlocking_script(unlocking_script: str) -> dict:
-    counter = 0
+    pub_key = unlocking_script[:128]
+    signature = unlocking_script[128:]
 
-    signature_size = little_endian_to_int(unlocking_script[0:2])
-    counter += 2
-
-    signature = unlocking_script[counter : counter + signature_size]
-    counter += signature_size
-
-    pub_key_size = little_endian_to_int(
-        unlocking_script[counter : counter + 2]
-    )
-    counter += 2
-
-    pub_key = unlocking_script[counter : counter + pub_key_size]
-
-    return {"signature": signature, "public_key": pub_key}
+    return {
+        "signature": signature,
+        "public_key": pub_key,
+        "address": pubkey_to_address(pub_key.encode())
+    }
 
 
 def is_valid_unlocking_script(
-    unlocking_script: str, outpoint: OutPoint
+    unlocking_script: str, transaction_serialized: str
 ) -> bool:
     # TODO: This functions allows to spend all outpoints since we are
     # verifying the signature not the signature + matching public key.
 
     try:
         unlocking_script = deserialize_unlocking_script(unlocking_script)
+        print(unlocking_script)
     except binascii.Error:
         return False
 
-    message = build_message(outpoint, unlocking_script["public_key"]).encode()
+    message = transaction_serialized.encode()
 
     try:
         is_valid = verify_signature(
@@ -333,12 +189,11 @@ def is_valid_unlocking_script(
     return is_valid
 
 
-def sign_transaction(private_key: bytes, outpoint: OutPoint) -> bytes:
+def sign_transaction(private_key: bytes, transaction_serialized: str) -> bytes:
     private_key = bytes_to_signing_key(private_key=private_key)
     vk = private_key.get_verifying_key()
     public_key = vk.to_string().hex()
 
-    message = build_message(outpoint, public_key).encode()
-    signature = private_key.sign(message)
+    signature = private_key.sign(transaction_serialized.encode())
 
-    return signature
+    return public_key + signature.hex()

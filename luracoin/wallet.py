@@ -11,7 +11,6 @@ from mnemonic import Mnemonic
 
 from luracoin.config import Config
 from luracoin.exceptions import WalletAlreadyExistError
-from luracoin.helpers import little_endian
 
 
 def address_to_pubkey(address: str) -> str:
@@ -39,12 +38,7 @@ def build_p2pkh(address: str) -> str:
     If the byte is < 0x4b (75) it means that is data to push into the STACK
     """
     pub_key_hash = address_to_pubkey(address)
-    # count_push = little_endian(num_bytes=1, data=int(len(pub_key_hash) / 2))
 
-    # "<OP_DUP><OP_HASH160>len_push pub_key<OP_EQUALVERIFY><OP_CHECKSIG>"
-    # script = "76a9" + count_push + pub_key_hash + "88ac"
-
-    # For now only P2PKH
     return pub_key_hash
 
 

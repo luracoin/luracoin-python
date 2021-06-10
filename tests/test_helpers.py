@@ -1,26 +1,22 @@
+import pytest
 from luracoin.config import Config
 from luracoin.helpers import (
     bits_to_target,
-    little_endian,
-    var_int,
     is_hex,
-    get_blk_file_size,
-    block_index_disk_read,
-    block_index_disk_write,
     bytes_to_signing_key,
 )
 
 
 def test_bytes_to_signing_key(blockchain):
-    private_key = (
+    private_key_original = (
         b"JRh3y\xf3\xcfg\x8d\xea.\x91\xeb?\xed\xe3u\x04\x84[R\x9c\x97\x87\x8f"
         b"\xc6I\x8b(w\xd5\xb1"
     )
 
-    private_key = bytes_to_signing_key(private_key=private_key)
+    private_key = bytes_to_signing_key(private_key=private_key_original)
     verifying_key = private_key.get_verifying_key()
 
-    assert private_key.to_string() == private_key
+    assert private_key.to_string() == private_key_original
     assert private_key.to_string().hex() == (
         "4a52683379f3cf678dea2e91eb3fede37504845b529c97878fc6498b2877d5b1"
     )
@@ -28,126 +24,6 @@ def test_bytes_to_signing_key(blockchain):
         "5c440bc46d316dbb244bb57e39142f13a1ca7e02d27d46e5cf90fdb98eaf5c1eab11"
         "c4af165e4ce3eb0652f8d937620804fe15201c00a7466f56237810988db1"
     )
-
-
-def test_block_index_disk_read() -> None:
-    block_index = (
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaafd95010f00000000"
-    )
-    actual = block_index_disk_read(block_index)
-    expected = {
-        "header": (
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        ),
-        "height": 405,
-        "txns": 15,
-        "file": "000000",
-        "is_validated": False,
-    }
-    assert actual == expected
-
-    block_index = (
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaa050f00000000"
-    )
-    actual = block_index_disk_read(block_index)
-    expected = {
-        "header": (
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        ),
-        "height": 5,
-        "txns": 15,
-        "file": "000000",
-        "is_validated": False,
-    }
-    assert actual == expected
-
-    block_index = (
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaafe73c60800fd45462b4e0201"
-    )
-    actual = block_index_disk_read(block_index)
-    expected = {
-        "header": (
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        ),
-        "height": 575_091,
-        "txns": 17989,
-        "file": "151083",
-        "is_validated": True,
-    }
-    assert actual == expected
-
-
-def test_block_index_disk_write() -> None:
-    block_index = {
-        "header": (
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        ),
-        "height": 5,
-        "txns": 15,
-        "file": "000000",
-        "is_validated": False,
-    }
-
-    actual = block_index_disk_write(block_index)
-    expected = (
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaa050f00000000"
-    )
-
-    assert actual == expected
-
-    block_index = {
-        "header": (
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        ),
-        "height": 575_091,
-        "txns": 17989,
-        "file": "151083",
-        "is_validated": True,
-    }
-    actual = block_index_disk_write(block_index)
-    expected = (
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaafe73c60800fd45462b4e0201"
-    )
-
-    assert actual == expected
-
-
-def test_var_int() -> None:
-    assert var_int(252) == "fc"
-    assert var_int(1276) == "fdfc04"
-    assert var_int(10276) == "fd2428"
-    assert var_int(100_000) == "fea0860100"
-    assert var_int(1_000_000) == "fe40420f00"
-    assert var_int(10_000_000) == "fe80969800"
-    assert var_int(5_000_000_000) == "ff00f2052a01000000"
-
-
-def test_little_endian() -> None:
-    assert little_endian(num_bytes=5, data=15) == "0f00000000"
-    assert little_endian(num_bytes=4, data=15) == "0f000000"
-    assert little_endian(num_bytes=3, data=15) == "0f0000"
-    assert little_endian(num_bytes=2, data=19) == "1300"
-    assert little_endian(num_bytes=1, data=19) == "13"
 
 
 def test_is_hex() -> None:
@@ -203,14 +79,11 @@ def test_is_hex() -> None:
     )
 
 
+@pytest.mark.skip(reason="WIP")
 def test_sha256d() -> None:
     # TODO: Test for sha256d
     pass
 
-
-def test_var_int_to_bytes() -> None:
-    # TODO: Test for var_int_to_bytes
-    pass
 
 
 def test_bits_to_target() -> None:
@@ -234,14 +107,3 @@ def test_bits_to_target() -> None:
         "000000ffffff0000000000000000000000000000000000000000000000000000"
     )
 
-
-def test_get_blk_file_size(blockchain) -> None:  # type: ignore
-    testfilename = "testfile.txt"
-    testfile = f"{Config.BLOCKS_DIR}{testfilename}"
-    content_length = 1000
-
-    f = open(testfile, "a")
-    f.write("".join("x" for _ in range(content_length)))
-    f.close()
-
-    assert get_blk_file_size(testfilename) == content_length

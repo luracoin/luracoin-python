@@ -1,69 +1,81 @@
-import plyvel
-from luracoin.config import Config
-from luracoin.helpers import little_endian, get_blk_file_size
+import bsddb3
+import os
+import pickle
 
 
-def get_current_file_number() -> str:
-    # Get the current file
-    db = plyvel.DB(Config.BLOCKS_DIR + "index", create_if_missing=True)
-    file_number = db.get(b"l")
-    db.close()
-
-    # If there is not a current file we'll start by '000000'
-    if file_number is None or file_number == "" or file_number == b"":
-        file_number = "000000"
-    else:
-        file_number = file_number.decode("utf-8")
-
-    file_name = get_current_file_name(file_number)
-    if get_blk_file_size(file_name) >= Config.MAX_FILE_SIZE:
-        file_number = next_blk_file(file_number)
-
-    try:
-        return file_number.decode("utf-8")
-    except AttributeError:
-        return str(file_number)
+def create_bdb_object(filename):
+    bdb = bsddb3.db.DB()
+    bdb.set_flags(bsddb3.db.DB_DUP | bsddb3.db.DB_DUPSORT)
+    open_flags = bsddb3.db.DB_CREATE | bsddb3.db.DB_EXCL
+    if os.path.exists(filename):
+        os.remove(filename)
+    bdb.open(filename, dbtype=bsddb3.db.DB_BTREE, flags=open_flags)
+    return bdb
 
 
-def get_current_file_name(file_number: str) -> str:
-    return f"blk{file_number}.dat"
+def write_to_the_file(filename, data):
+    bdb_filename = f'{filename}.new'
+    bdb = create_bdb_object(bdb_filename)
+
+    for url, record in data.items():
+        bdb.put(url.encode(), pickle.dumps(record, protocol=2))
+
+    bdb.close()
+    os.rename(bdb_filename, filename)
 
 
-def get_current_blk_file() -> str:
-    number = get_current_file_number()
-    return get_current_file_name(number)
+def read_bdb(bdb_filename):
+    bdb = bsddb3.db.DB()
+    bdb.set_flags(bsddb3.db.DB_DUP | bsddb3.db.DB_DUPSORT)
+    bdb.open(bdb_filename)
+    bdb_cursor = bdb.cursor()
+
+    record = bdb_cursor.first()
+    counter = 1
+    while record:
+        print('Record num: %s, key: %s, value: %s' % (counter, record[0], pickle.loads(record[1])))
+        record = bdb_cursor.next()
+        counter += 1
+
+    bdb_cursor.close()
+    bdb.close()
 
 
-def serialise_block_to_save(serialised_block: str) -> str:
-    """
-    Serialise the block for saving it on the blkXXXXX.dat files.
-    We have to add the length of the serialised block between the Magic bytes
-    and the content.
-    """
+def read_key_bdb(bdb_filename, key):
+    bdb = bsddb3.db.DB()
+    bdb.set_flags(bsddb3.db.DB_DUP | bsddb3.db.DB_DUPSORT)
+    bdb.open(bdb_filename)
+    result = bdb.get(key)
+    bdb.close()
 
-    # Length of the serialised block without the Magic bytes
-    serialised_block_length_without_magic_bytes = int(
-        len(serialised_block) - 8
-    )
-
-    block_length = little_endian(
-        num_bytes=4, data=serialised_block_length_without_magic_bytes
-    )
-
-    # MAGIC + LENGTH + BLOCK
-    serialised_block = (
-        serialised_block[:8] + block_length + serialised_block[8:]
-    )
-
-    return serialised_block
+    if result:
+        return pickle.loads(result)
+    return result
 
 
-def next_blk_file(current_blk_file: str) -> str:
-    """
-    Increases by one the blk file name, for example:
-    blk000132.dat => blk000133.dat
+def main():
+    bdb_filename = '/Users/marcosaguayo/dev/luracoin-python/chain/bsddb.bdb'
+    data = {'www.example1.com': 'lorem ipsum 1',
+            'www.example2.com': 'lorem ipsum 2',
+            'www.example3.com': 'lorem ipsum 3',
+            'www.example4.com': 'lorem ipsum 4',
+            'www.example5.com': 'lorem ipsum 5',
+            'www.example6.com': 'lorem ipsum 6',
+            'www.example7.com': 'lorem ipsum 7',
+            'www.example8.com': 'lorem ipsum 8',
+            'www.example9.com': 'lorem ipsum 9'}
+    write_to_the_file(bdb_filename, data)
 
-    :param current_blk_file: <String> Actual file (eg. 000001)
-    :return: <String> Next file (eg. 000002)
-    """
-    return str(int(current_blk_file) + 1).zfill(6)
+    read_bdb(bdb_filename)
+
+    print("====")
+
+    print("Start")
+    
+    result = read_key_bdb(bdb_filename, b'www.example1.com')
+
+    print(result)
+
+    print("End")
+
+
