@@ -1,6 +1,7 @@
 import msgpack
 import ecdsa
 import json
+import redis
 from typing import NamedTuple, Union
 import binascii
 from binascii import unhexlify
@@ -22,7 +23,7 @@ class Transaction:
         fee: int = 0,
         value: int = 0,
         to_address: str = None,
-        unlock_sig: str = None,
+        unlock_sig: bytes = None,
     ) -> None:
         self.chain = chain
         self.nonce = nonce
@@ -38,15 +39,27 @@ class Transaction:
             and str(self.txins[0].to_spend.txid) == Config.COINBASE_TX_ID
         )
 
+    def sign(self, private_key) -> "Transaction":
+        signature = sign_transaction(
+            private_key=private_key, 
+            transaction_serialized=self.serialize(to_sign=True).hex(),
+        )
+        self.unlock_sig = signature
+        return self
+
     def json(self) -> dict:
-        return {
+        result =  {
+            "id": self.id,
             "chain": self.chain,
             "nonce": self.nonce,
             "fee": self.fee,
             "value": self.value,
             "to_address": self.to_address,
-            "unlock_sig": self.unlock_sig,
+            "unlock_sig": None,
         }
+        if self.unlock_sig:
+            result["unlock_sig"] = self.unlock_sig.hex()
+        return result
 
     def serialize(self, to_sign=False) -> bytes:
         chain = self.chain.to_bytes(1, byteorder="little", signed=False)
@@ -56,7 +69,7 @@ class Transaction:
         to_address = str.encode(self.to_address)
         
         if self.unlock_sig:
-            unlock_sig = str.encode(self.unlock_sig)
+            unlock_sig = self.unlock_sig
 
         serialized = chain + nonce + fee + value + to_address
 
@@ -72,19 +85,14 @@ class Transaction:
         self.value = little_endian_to_int(serialized_hex[18:34])
         self.to_address = binascii.unhexlify(serialized_hex[34:102]).decode()
         if len(serialized_hex) > 102:
-            self.unlock_sig = binascii.unhexlify(serialized_hex[102:]).decode()
+            self.unlock_sig = binascii.unhexlify(serialized_hex[102:])
 
     @property
     def id(self) -> str:
         """
         The ID will be the hash SHA256 of all the txins and txouts.
         """
-        msg = b""
-        for x in self.txins:
-            msg = msg + x.serialize()
-        for y in self.txouts:
-            msg = msg + y.serialize()
-
+        msg = self.serialize().hex().encode()
         tx_id = sha256d(msg)
         return tx_id
 
@@ -99,13 +107,29 @@ class Transaction:
         """
         Validate a transaction. For a transaction to be valid it has to follow
         hese conditions:
-
+        - Publick Key is a correct spending address
+        - Public Key has balance
         - Value is less than the total supply.
         - Tx size is less than the block size limit.
-        - Value has to be equal or less than the spending transaction
         - Valid unlocking code
         """
-        return True
+        is_valid = is_valid_unlocking_script(
+            unlocking_script=self.unlock_sig,
+            transaction_serialized=self.serialize(to_sign=True).hex()
+        )
+        if not is_valid:
+            return False
+
+        return is_valid
+
+    def to_transaction_pool(self) -> None:
+        redis_client = redis.Redis(
+            host=Config.REDIS_HOST,
+            port=Config.REDIS_PORT,
+            db=Config.REDIS_DB,
+        )
+
+        redis_client.set(self.id, self.serialize())
 
     def save(self, block_height: int) -> None:
         """
@@ -152,7 +176,8 @@ def verify_signature(message: str, public_key: str, signature: str) -> bool:
     return vk.verify(signature, message)
 
 
-def deserialize_unlocking_script(unlocking_script: str) -> dict:
+def deserialize_unlocking_script(unlocking_script: bytes) -> dict:
+    unlocking_script = unlocking_script.hex()
     pub_key = unlocking_script[:128]
     signature = unlocking_script[128:]
 
@@ -171,7 +196,6 @@ def is_valid_unlocking_script(
 
     try:
         unlocking_script = deserialize_unlocking_script(unlocking_script)
-        print(unlocking_script)
     except binascii.Error:
         return False
 
@@ -185,6 +209,8 @@ def is_valid_unlocking_script(
         )
     except ecdsa.keys.BadSignatureError:
         is_valid = False
+    except AssertionError:
+        is_valid = False
 
     return is_valid
 
@@ -192,8 +218,8 @@ def is_valid_unlocking_script(
 def sign_transaction(private_key: bytes, transaction_serialized: str) -> bytes:
     private_key = bytes_to_signing_key(private_key=private_key)
     vk = private_key.get_verifying_key()
-    public_key = vk.to_string().hex()
+    public_key = vk.to_string()
 
     signature = private_key.sign(transaction_serialized.encode())
 
-    return public_key + signature.hex()
+    return public_key + signature

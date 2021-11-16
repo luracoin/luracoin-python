@@ -28,3 +28,4 @@ git+https://github.com/trezor/python-mnemonic
 bip32utils
 msgpack==0.6.1
 pymongo==3.11.4
+pytest-mock==3.6.1
