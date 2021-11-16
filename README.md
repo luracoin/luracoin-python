@@ -8,15 +8,6 @@ Luracoin Python implementation.
 
 I am creating this to learn more about cryptocurrencies. It is an __*educational project*__. This project is WIP, not stable on master yet.
 
-## Install
-
-#### MacOS
-```shell
-    brew update
-    brew upgrade
-    brew install leveldb
-```
-
 ## Status
 Early development. The blockchain is not live yet.
 
