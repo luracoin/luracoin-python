@@ -1,74 +1,36 @@
+import msgpack
+import ecdsa
+import json
+import redis
 from typing import NamedTuple, Union
+import binascii
+from binascii import unhexlify
 
+from luracoin.wallet import pubkey_to_address
 from luracoin.config import Config
-from luracoin.helpers import little_endian, mining_reward, sha256d, var_int
-
-# Used to represent the specific output within a transaction.
-OutPoint = NamedTuple(
-    "OutPoint", [("txid", Union[str, int]), ("txout_idx", Union[str, int])]
+from luracoin.helpers import (
+    mining_reward,
+    sha256d,
+    bytes_to_signing_key,
+    little_endian_to_int
 )
-
-
-class TxIn:
-    def __init__(
-        self,
-        to_spend: Union[OutPoint, None] = None,
-        unlock_sig: str = None,
-        sequence: int = None,
-    ) -> None:
-        self.to_spend = to_spend
-        self.unlock_sig = unlock_sig
-        self.sequence = sequence
-
-    def serialize(self) -> str:
-        tx_id = self.to_spend.txid
-
-        if self.to_spend.txid == 0:
-            tx_id = Config.COINBASE_TX_ID
-
-        if self.to_spend.txout_idx == Config.COINBASE_TX_INDEX:
-            vout = Config.COINBASE_TX_INDEX
-        else:
-            vout = little_endian(  # type: ignore
-                num_bytes=4, data=self.to_spend.txout_idx
-            )
-
-        script_sig = self.unlock_sig
-        script_sig_size = var_int(len(script_sig))
-
-        sequence = little_endian(num_bytes=4, data=self.sequence)
-
-        total = (
-            str(tx_id) + vout + str(script_sig_size) + script_sig + sequence
-        )
-
-        return total
-
-
-class TxOut:
-    def __init__(self, value: int = None, to_address: str = None) -> None:
-        self.value = value
-        self.to_address = to_address
-
-    def serialize(self) -> str:
-        value = little_endian(num_bytes=8, data=self.value)
-        script_pub_key = self.to_address
-        script_pub_key_size = var_int(len(script_pub_key))
-        return value + script_pub_key_size + script_pub_key
-
 
 class Transaction:
     def __init__(
         self,
-        version: int = 0,
-        txins: list = [],
-        txouts: list = [],
-        locktime: int = 0,
+        chain: int = 0,
+        nonce: int = 0,
+        fee: int = 0,
+        value: int = 0,
+        to_address: str = None,
+        unlock_sig: bytes = None,
     ) -> None:
-        self.version = version
-        self.txins = txins
-        self.txouts = txouts
-        self.locktime = locktime
+        self.chain = chain
+        self.nonce = nonce
+        self.fee = fee
+        self.value = value
+        self.to_address = to_address
+        self.unlock_sig = unlock_sig
 
     @property
     def is_coinbase(self) -> bool:
@@ -77,17 +39,60 @@ class Transaction:
             and str(self.txins[0].to_spend.txid) == Config.COINBASE_TX_ID
         )
 
+    def sign(self, private_key) -> "Transaction":
+        signature = sign_transaction(
+            private_key=private_key, 
+            transaction_serialized=self.serialize(to_sign=True).hex(),
+        )
+        self.unlock_sig = signature
+        return self
+
+    def json(self) -> dict:
+        result =  {
+            "id": self.id,
+            "chain": self.chain,
+            "nonce": self.nonce,
+            "fee": self.fee,
+            "value": self.value,
+            "to_address": self.to_address,
+            "unlock_sig": None,
+        }
+        if self.unlock_sig:
+            result["unlock_sig"] = self.unlock_sig.hex()
+        return result
+
+    def serialize(self, to_sign=False) -> bytes:
+        chain = self.chain.to_bytes(1, byteorder="little", signed=False)
+        nonce = self.nonce.to_bytes(4, byteorder="little", signed=False)
+        fee = self.fee.to_bytes(4, byteorder="little", signed=False)
+        value = self.value.to_bytes(8, byteorder="little", signed=False)
+        to_address = str.encode(self.to_address)
+        
+        if self.unlock_sig:
+            unlock_sig = self.unlock_sig
+
+        serialized = chain + nonce + fee + value + to_address
+
+        if not to_sign and self.unlock_sig:
+            serialized += unlock_sig
+
+        return serialized
+
+    def deserialize(self, serialized_hex: str):
+        self.chain = little_endian_to_int(serialized_hex[0:2])
+        self.nonce = little_endian_to_int(serialized_hex[2:10])
+        self.fee = little_endian_to_int(serialized_hex[10:18])
+        self.value = little_endian_to_int(serialized_hex[18:34])
+        self.to_address = binascii.unhexlify(serialized_hex[34:102]).decode()
+        if len(serialized_hex) > 102:
+            self.unlock_sig = binascii.unhexlify(serialized_hex[102:])
+
     @property
     def id(self) -> str:
         """
         The ID will be the hash SHA256 of all the txins and txouts.
         """
-        msg = ""
-        for x in self.txins:
-            msg = msg + x.serialize()
-        for y in self.txouts:
-            msg = msg + y.serialize()
-
+        msg = self.serialize().hex().encode()
         tx_id = sha256d(msg)
         return tx_id
 
@@ -98,44 +103,123 @@ class Transaction:
         """
         return self.id
 
-    def serialize(self) -> str:
-        # Version
-        serialized_tx = little_endian(num_bytes=2, data=self.version)
-
-        # INPUTS:
-        serialized_tx += var_int(len(self.txins))
-
-        for txin in self.txins:
-            serialized_tx += txin.serialize()
-
-        # OUTPUTS:
-        serialized_tx += var_int(len(self.txouts))
-
-        for txout in self.txouts:
-            serialized_tx += txout.serialize()
-
-        return serialized_tx
-
     def validate(self) -> bool:
         """
         Validate a transaction. For a transaction to be valid it has to follow
         hese conditions:
-
+        - Publick Key is a correct spending address
+        - Public Key has balance
         - Value is less than the total supply.
         - Tx size is less than the block size limit.
-        - Value has to be equal or less than the spending transaction
         - Valid unlocking code
         """
-        if not self.txins or not self.txouts:
+        is_valid = is_valid_unlocking_script(
+            unlocking_script=self.unlock_sig,
+            transaction_serialized=self.serialize(to_sign=True).hex()
+        )
+        if not is_valid:
             return False
 
-        total_value = 0
-        for to in self.txouts:
-            total_value = total_value + to.value
+        return is_valid
 
-        if self.is_coinbase and total_value > (
-            mining_reward() * Config.BELUSHIS_PER_COIN
-        ):
-            return False
+    def to_transaction_pool(self) -> None:
+        redis_client = redis.Redis(
+            host=Config.REDIS_HOST,
+            port=Config.REDIS_PORT,
+            db=Config.REDIS_DB,
+        )
 
-        return True
+        redis_client.set(self.id, self.serialize())
+
+    def save(self, block_height: int) -> None:
+        """
+        Add a transaction to the chainstate. Inside the chainstate database,
+        the following key/value pairs are stored:
+
+        'c' + 32-byte transaction hash -> unspent transaction output record for
+        that transaction. These records are only present for transactions that
+        have at least one unspent output left.
+
+        Each record stores:
+            The version of the transaction.
+            Whether the transaction was a coinbase or not.
+            Which height block contains the transaction.
+            Which outputs of that transaction are unspent.
+            The scriptPubKey and amount for those unspent outputs.
+
+            [TX VERSION][COINBASE][HEIGHT][NUM OUTPUTS][∞][OUTPUT_LEN][OUTPUT]
+                  ^         ^        ^          ^              ^
+              4 bytes   1 byte   4 bytes      VARINT         VARINT
+
+        'B' -> 32-byte block hash: the block hash up to which the database
+        represents the unspent transaction outputs
+        """
+        pass
+
+
+def build_message(outpoint, pub_key: str) -> str:
+    """
+    TODO: https://bitcoin.stackexchange.com/questions/37093/what-goes-in-to-the-message-of-a-transaction-signature
+    """
+    return sha256d(str(outpoint.txid) + str(outpoint.txout_idx) + pub_key)
+
+
+def build_script_sig(signature: str, public_key: str) -> str:
+    """
+    <VARINT>SIGNATURE<VARINT>PUBLIC_KEY
+    """
+    return signature + public_key
+
+
+def verify_signature(message: str, public_key: str, signature: str) -> bool:
+    vk = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
+    return vk.verify(signature, message)
+
+
+def deserialize_unlocking_script(unlocking_script: bytes) -> dict:
+    unlocking_script = unlocking_script.hex()
+    pub_key = unlocking_script[:128]
+    signature = unlocking_script[128:]
+
+    return {
+        "signature": signature,
+        "public_key": pub_key,
+        "address": pubkey_to_address(pub_key.encode())
+    }
+
+
+def is_valid_unlocking_script(
+    unlocking_script: str, transaction_serialized: str
+) -> bool:
+    # TODO: This functions allows to spend all outpoints since we are
+    # verifying the signature not the signature + matching public key.
+
+    try:
+        unlocking_script = deserialize_unlocking_script(unlocking_script)
+    except binascii.Error:
+        return False
+
+    message = transaction_serialized.encode()
+
+    try:
+        is_valid = verify_signature(
+            message=message,
+            public_key=bytes.fromhex(unlocking_script["public_key"]),
+            signature=bytes.fromhex(unlocking_script["signature"]),
+        )
+    except ecdsa.keys.BadSignatureError:
+        is_valid = False
+    except AssertionError:
+        is_valid = False
+
+    return is_valid
+
+
+def sign_transaction(private_key: bytes, transaction_serialized: str) -> bytes:
+    private_key = bytes_to_signing_key(private_key=private_key)
+    vk = private_key.get_verifying_key()
+    public_key = vk.to_string()
+
+    signature = private_key.sign(transaction_serialized.encode())
+
+    return public_key + signature

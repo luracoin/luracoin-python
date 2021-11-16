@@ -8,6 +8,15 @@ Luracoin Python implementation.
 
 I am creating this to learn more about cryptocurrencies. It is an __*educational project*__.
 
+## Install
+
+#### MacOS
+```shell
+    brew update
+    brew upgrade
+    brew install leveldb
+```
+
 ## Status
 Early development. The blockchain is not live yet.
 
@@ -16,10 +25,15 @@ Early development. The blockchain is not live yet.
 #### Why python?
 It's easy and fun. We don't need performance yet, we need more contributors. I will also create a Go implementation.
 
+#### Why are you using msgpack?
+It's worst than simple byte serialization, like 1.5x worst, but this is an educational project, I don't expect many transactions.
+
 #### Diferences with Bitcoin 
-- 2 more bytes on the header (Nonce).  
-- Block time every 5 min instead of 10 min.  
-- 4MB limit instead of 1MB.
+- 2 more bytes on the header (Nonce).
+- The Coinbase can be spend after 7 blocks.
+- Only P2PKH.
+- Block time every 15 min instead of 10 min. (WIP)
+- The blocksize instead of 1MB, will start at 100Kb with an increase of 20% every 8640 blocks (3 months)
 - Supply of 21 billion coins instead of 21 million.
 - No merkle tree
 
@@ -88,4 +102,18 @@ Response:
         Output Length (VarInt).
         Output.
 
+```
+
+
+
+### Installr BerkeleyDB
+```
+brew install berkeley-db@4
+echo 'export PATH="/usr/local/opt/berkeley-db@4/bin:$PATH"' >> ~/.zshrc
+BERKELEYDB_DIR=$(brew --prefix berkeley-db@4) pip install bsddb3
+```
+
+Examine BerkleyDB:
+```
+db_dump -p chain/bsddb.bdb 
 ```
