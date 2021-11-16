@@ -6,7 +6,7 @@
 
 Luracoin Python implementation.
 
-I am creating this to learn more about cryptocurrencies. It is an __*educational project*__.
+I am creating this to learn more about cryptocurrencies. It is an __*educational project*__. This project is WIP, not stable on master yet.
 
 ## Install
 
@@ -31,11 +31,11 @@ It's worst than simple byte serialization, like 1.5x worst, but this is an educa
 #### Diferences with Bitcoin 
 - 2 more bytes on the header (Nonce).
 - The Coinbase can be spend after 7 blocks.
-- Only P2PKH.
-- Block time every 15 min instead of 10 min. (WIP)
+- No UTXO, Luracoin uses Account Based Model
+- Progressive Block time starting every 60 min and after every halving decrese the time to a maximum of 5 minutes. (WIP)
 - The blocksize instead of 1MB, will start at 100Kb with an increase of 20% every 8640 blocks (3 months)
 - Supply of 21 billion coins instead of 21 million.
-- No merkle tree
+- Account Balances commitment every 2 weeks.
 
 
 ## Testing
