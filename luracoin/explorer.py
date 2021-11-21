@@ -16,17 +16,17 @@ coinbase_transacion = Transaction(
     fee=100,
     value=50000,
     to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
-    unlock_sig=None
+    unlock_sig=None,
 )
 
 block1 = Block(
     version=1,
     height=0,
     prev_block_hash="0" * 64,
-    timestamp=1623168442,
-    bits=b'\x1e\x0f\xff\xff',
+    timestamp=1_623_168_442,
+    bits=b"\x1e\x0f\xff\xff",
     nonce=0,
-    txns=[coinbase_transacion]
+    txns=[coinbase_transacion],
 )
 
 print(block1.json())

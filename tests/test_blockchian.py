@@ -18,9 +18,7 @@ from tests.helpers import add_test_transactions
 
 def test_block_select_transactions():
     redis_client = redis.Redis(
-        host=Config.REDIS_HOST,
-        port=Config.REDIS_PORT,
-        db=Config.REDIS_DB,
+        host=Config.REDIS_HOST, port=Config.REDIS_PORT, db=Config.REDIS_DB
     )
     redis_client.flushdb()
 
@@ -31,22 +29,37 @@ def test_block_select_transactions():
     block1 = Block(
         version=1,
         prev_block_hash=0,
-        timestamp=1623168442,
+        timestamp=1_623_168_442,
         signature="0",
-        txns=[]
+        txns=[],
     )
 
     block1.select_transactions()
 
     txns_list = [
-        {"id": transactions[0].id, "signature": transactions[0].unlock_sig.hex()},
-        {"id": transactions[1].id, "signature": transactions[1].unlock_sig.hex()},
-        {"id": transactions[2].id, "signature": transactions[2].unlock_sig.hex()},
-        {"id": transactions[3].id, "signature": transactions[3].unlock_sig.hex()},
-        {"id": transactions[4].id, "signature": transactions[4].unlock_sig.hex()},
+        {
+            "id": transactions[0].id,
+            "signature": transactions[0].unlock_sig.hex(),
+        },
+        {
+            "id": transactions[1].id,
+            "signature": transactions[1].unlock_sig.hex(),
+        },
+        {
+            "id": transactions[2].id,
+            "signature": transactions[2].unlock_sig.hex(),
+        },
+        {
+            "id": transactions[3].id,
+            "signature": transactions[3].unlock_sig.hex(),
+        },
+        {
+            "id": transactions[4].id,
+            "signature": transactions[4].unlock_sig.hex(),
+        },
     ]
 
-    newlist = sorted(txns_list, key=itemgetter('id'))
+    newlist = sorted(txns_list, key=itemgetter("id"))
 
     assert block1.txns[0].id == newlist[0]["id"]
     assert block1.txns[1].id == newlist[1]["id"]

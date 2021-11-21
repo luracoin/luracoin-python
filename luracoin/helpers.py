@@ -6,7 +6,6 @@ from typing import Union
 from luracoin.config import Config
 
 
-
 def bits_to_target(bits: bytes) -> hex:
     """
     The first byte is the exponent and the other three bytes are the

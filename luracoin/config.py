@@ -1,4 +1,5 @@
 import os
+import binascii
 
 
 class Config:
@@ -7,13 +8,16 @@ class Config:
     )
 
     WALLET_PATH = BASE_DIR + "/bin/wallet.dat"
+    COINBASE_UNLOCK_SIGNATURE = binascii.unhexlify("0" * 256)
 
     # This will be appended at the end of Block and transaction transmission to
     # prevent other networks of currencies to capture them. Usually blockchains
     # have their own magic bytes.
-    MAGIC_BYTES = b'\xbaw\xd8\x9f'
+    MAGIC_BYTES = b"\xbaw\xd8\x9f"
 
     MAX_TX_PER_BLOCK = 65535
+
+    TRANSACTION_LENGTH = 179
 
     PORT = 9999
 
@@ -38,7 +42,6 @@ class Config:
 
     COINS_TO_FORGE = 100_000 * LURASHIS_PER_COIN
     BLOCK_REWARD = 50 * LURASHIS_PER_COIN
-
 
     # REDIS
     #

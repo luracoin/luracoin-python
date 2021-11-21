@@ -2,7 +2,8 @@ import json
 import msgpack
 import redis
 import binascii
-#import plyvel
+
+# import plyvel
 from pymongo import MongoClient
 from typing import Any
 from luracoin.config import Config
@@ -10,6 +11,7 @@ from luracoin.exceptions import BlockNotValidError
 from luracoin.helpers import sha256d, bits_to_target
 from luracoin.transactions import Transaction
 from luracoin.chain import get_value
+
 
 class Block:
     def __init__(
@@ -74,9 +76,7 @@ class Block:
 
     def select_transactions(self) -> "Block":
         redis_client = redis.Redis(
-            host=Config.REDIS_HOST,
-            port=Config.REDIS_PORT,
-            db=Config.REDIS_DB,
+            host=Config.REDIS_HOST, port=Config.REDIS_PORT, db=Config.REDIS_DB
         )
         keys = redis_client.keys()
         transactions = []
@@ -96,37 +96,84 @@ class Block:
     """
 
     def serialize(self) -> bytes:
-        version_bytes = self.version.to_bytes(4, byteorder="little", signed=False)
+        version_bytes = self.version.to_bytes(
+            4, byteorder="little", signed=False
+        )
         id_bytes = binascii.a2b_hex(self.id)
-        height_bytes = self.height.to_bytes(4, byteorder="little", signed=False)
         prev_block_hash_bytes = binascii.a2b_hex(self.prev_block_hash)
-        timestamp_bytes = self.timestamp.to_bytes(4, byteorder="big", signed=False)
+        height_bytes = self.height.to_bytes(
+            4, byteorder="little", signed=False
+        )
+        timestamp_bytes = self.timestamp.to_bytes(
+            4, byteorder="big", signed=False
+        )
         bits_bytes = self.bits
         nonce_bytes = self.nonce.to_bytes(4, byteorder="little", signed=False)
 
+        print("\n----------")
+        print(f"magic bytes: {Config.MAGIC_BYTES.hex()}")
+        print(f"version_bytes: {version_bytes.hex()}")
+        print(f"id_bytes: {id_bytes.hex()}")
+        print(f"prev_block_hash_bytes: {prev_block_hash_bytes.hex()}")
+        print(f"height_bytes: {height_bytes.hex()}")
+        print(f"timestamp_bytes: {timestamp_bytes.hex()}")
+        print(f"bits_bytes: {bits_bytes.hex()}")
+        print(f"nonce_bytes: {nonce_bytes.hex()}")
+        print("----------\n")
 
-        print("=======")
-        print("Serialize: ")
-        print(Config.MAGIC_BYTES)
-        print(version_bytes)
-        print(id_bytes)
-        print(height_bytes)
-        print(prev_block_hash_bytes)
-        print(timestamp_bytes)
-        print(bits_bytes)
-        print(nonce_bytes)
-        print("=======")
+        transaction_bytes = b""
+        for txn in self.txns:
+            transaction_bytes += txn.serialize()
 
-    def deserialize(self, block_serialized: str) -> None:
-        pass
+        return (
+            Config.MAGIC_BYTES
+            + version_bytes
+            + id_bytes
+            + prev_block_hash_bytes
+            + height_bytes
+            + timestamp_bytes
+            + bits_bytes
+            + nonce_bytes
+            + transaction_bytes
+        )
+
+    def deserialize(self, block_serialized: bytes) -> "Block":
+        if block_serialized[:4] != Config.MAGIC_BYTES:
+            raise BlockNotValidError("Magic bytes are invalid")
+
+        self.version = int.from_bytes(
+            block_serialized[4:8], byteorder="little"
+        )
+        self.prev_block_hash = block_serialized[40:72].hex()
+        self.height = int.from_bytes(
+            block_serialized[72:76], byteorder="little"
+        )
+        self.timestamp = int.from_bytes(
+            block_serialized[76:80], byteorder="big"
+        )
+        self.bits = block_serialized[80:85]
+        self.nonce = int.from_bytes(
+            block_serialized[85:89], byteorder="little"
+        )
+
+        self.txns = []
+        block_transations = block_serialized[89:]
+
+        print(f"block_transations: {block_transations.hex()}")
+
+        for i in range(0, len(block_transations), 179):
+            txn = Transaction()
+            txn.deserialize(block_transations[i : i + 179])
+            self.txns.append(txn)
+        return self
 
     def is_valid_proof(self) -> bool:
         target = bits_to_target(self.bits)
         if self.id.startswith("0000"):
             print(f"FUNCION is_valid_proof <{self.bits}> <{target}>")
             print(self.id)
-            print(int(self.id, 16))
-            print(int(bits_to_target(self.bits), 16))
+            print(f"{int(self.id, 16)} <= {int(target, 16)}")
+            print(int(self.id, 16) <= int(target, 16))
         return int(self.id, 16) <= int(target, 16)
 
     def validate(self) -> bool:
@@ -138,7 +185,7 @@ class Block:
         4) [ ] Block Size
         5) [ ] Reward + Fees
         6) [ ] Timestamp
-        7) [ ] Block Height
+        7) [X] Block Height
         """
         current_height = get_value("height")
         if not current_height:
@@ -147,20 +194,18 @@ class Block:
         if not self.is_valid_proof():
             print("Proof of work is invalid")
             return False
-        
-        if self.block.height != current_height + 1:
+
+        if self.height != current_height + 1:
             print("Block height is invalid")
             return False
 
         return True
 
     def save(self) -> None:
-        print("=======")
-        print(json.dumps(self.json(), indent=4))
-        print(self.serialize())
-        print("=======")
-        if self.validate():
-            print("Block is valid")
+        if not self.validate():
+            raise BlockNotValidError("Block is not valid")
+
+        print("Save")
 
     def create(self, propagate: bool = True) -> None:
         pass

@@ -1,10 +1,6 @@
 import pytest
 from luracoin.config import Config
-from luracoin.helpers import (
-    bits_to_target,
-    is_hex,
-    bytes_to_signing_key,
-)
+from luracoin.helpers import bits_to_target, is_hex, bytes_to_signing_key
 
 
 def test_bytes_to_signing_key(blockchain):
@@ -85,9 +81,8 @@ def test_sha256d() -> None:
     pass
 
 
-
 def test_bits_to_target() -> None:
-    assert bits_to_target(b'\x1d\x00\xff\xff') == (
+    assert bits_to_target(b"\x1d\x00\xff\xff") == (
         "00000000ffff0000000000000000000000000000000000000000000000000000"
     )
 
@@ -102,6 +97,3 @@ def test_bits_to_target() -> None:
     assert bits_to_target(b"\x1f\x00\xff\xff") == (
         "0000ffff00000000000000000000000000000000000000000000000000000000"
     )
-
-
-

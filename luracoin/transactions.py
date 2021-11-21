@@ -6,14 +6,17 @@ from typing import NamedTuple, Union
 import binascii
 from binascii import unhexlify
 
+from luracoin import errors
+from luracoin.exceptions import TransactionNotValid
 from luracoin.wallet import pubkey_to_address
 from luracoin.config import Config
 from luracoin.helpers import (
     mining_reward,
     sha256d,
     bytes_to_signing_key,
-    little_endian_to_int
+    little_endian_to_int,
 )
+
 
 class Transaction:
     def __init__(
@@ -34,21 +37,18 @@ class Transaction:
 
     @property
     def is_coinbase(self) -> bool:
-        return (
-            len(self.txins) == 1
-            and str(self.txins[0].to_spend.txid) == Config.COINBASE_TX_ID
-        )
+        return self.unlock_sig == Config.COINBASE_UNLOCK_SIGNATURE
 
     def sign(self, private_key) -> "Transaction":
         signature = sign_transaction(
-            private_key=private_key, 
+            private_key=private_key,
             transaction_serialized=self.serialize(to_sign=True).hex(),
         )
         self.unlock_sig = signature
         return self
 
     def json(self) -> dict:
-        result =  {
+        result = {
             "id": self.id,
             "chain": self.chain,
             "nonce": self.nonce,
@@ -67,7 +67,7 @@ class Transaction:
         fee = self.fee.to_bytes(4, byteorder="little", signed=False)
         value = self.value.to_bytes(8, byteorder="little", signed=False)
         to_address = str.encode(self.to_address)
-        
+
         if self.unlock_sig:
             unlock_sig = self.unlock_sig
 
@@ -78,14 +78,14 @@ class Transaction:
 
         return serialized
 
-    def deserialize(self, serialized_hex: str):
-        self.chain = little_endian_to_int(serialized_hex[0:2])
-        self.nonce = little_endian_to_int(serialized_hex[2:10])
-        self.fee = little_endian_to_int(serialized_hex[10:18])
-        self.value = little_endian_to_int(serialized_hex[18:34])
-        self.to_address = binascii.unhexlify(serialized_hex[34:102]).decode()
-        if len(serialized_hex) > 102:
-            self.unlock_sig = binascii.unhexlify(serialized_hex[102:])
+    def deserialize(self, serialized_bytes: bytes):
+        self.chain = int.from_bytes(serialized_bytes[0:1], byteorder="little")
+        self.nonce = int.from_bytes(serialized_bytes[1:5], byteorder="little")
+        self.fee = int.from_bytes(serialized_bytes[5:9], byteorder="little")
+        self.value = int.from_bytes(serialized_bytes[9:17], byteorder="little")
+        self.to_address = serialized_bytes[17:51].decode("utf-8")
+        if len(serialized_bytes) > 51:
+            self.unlock_sig = serialized_bytes[51:]
 
     @property
     def id(self) -> str:
@@ -102,31 +102,67 @@ class Transaction:
         bitcoin.stackexchange.com/questions/37093/what-goes-in-to-the-message-of-a-transaction-signature
         """
         return self.id
-
-    def validate(self) -> bool:
+    
+    def validate_fields(self, raise_exception=False) -> bool:
         """
-        Validate a transaction. For a transaction to be valid it has to follow
-        hese conditions:
-        - Publick Key is a correct spending address
-        - Public Key has balance
-        - Value is less than the total supply.
-        - Tx size is less than the block size limit.
-        - Valid unlocking code
+        Checks that the transaction has the correct fields.
         """
-        is_valid = is_valid_unlocking_script(
-            unlocking_script=self.unlock_sig,
-            transaction_serialized=self.serialize(to_sign=True).hex()
-        )
-        if not is_valid:
+        if self.chain < 0 or self.chain > 256:
+            if raise_exception:
+                raise TransactionNotValid(errors.TRANSACTION_FIELD_CHAIN)
             return False
 
-        return is_valid
+        if self.nonce < 0 or self.nonce > 4_294_967_295:
+            if raise_exception:
+                raise TransactionNotValid(errors.TRANSACTION_FIELD_NONCE)
+            return False
+
+        if self.fee < 0 or self.fee > 4_294_967_295:
+            if raise_exception:
+                raise TransactionNotValid(errors.TRANSACTION_FIELD_FEE)
+            return False
+
+        if self.value <= 0 or self.value > 18_446_744_073_709_551_615:
+            if raise_exception:
+                raise TransactionNotValid(errors.TRANSACTION_FIELD_VALUE)
+            return False
+
+        if not self.to_address or len(self.to_address) != 34:
+            if raise_exception:
+                raise TransactionNotValid(errors.TRANSACTION_FIELD_TO_ADDRESS)
+            return False
+
+        if not self.unlock_sig or len(self.unlock_sig) != 128:
+            if raise_exception:
+                raise TransactionNotValid(errors.TRANSACTION_FIELD_SIGNATURE)
+            return False
+
+        return True
+
+    def validate(self, raise_exception=False) -> bool:
+        """
+        Validate a transaction. For a transaction to be valid it has to follow
+        these conditions:
+        """
+        if not self.validate_fields(raise_exception=raise_exception):
+            return False
+
+        if (
+            self.unlock_sig != Config.COINBASE_UNLOCK_SIGNATURE
+            and not is_valid_unlocking_script(
+                unlocking_script=self.unlock_sig,
+                transaction_serialized=self.serialize(to_sign=True).hex(),
+            )
+        ):
+            if raise_exception:
+                raise TransactionNotValid(errors.TRANSACTION_INVALID_SIGNATURE)
+            return False
+
+        return True
 
     def to_transaction_pool(self) -> None:
         redis_client = redis.Redis(
-            host=Config.REDIS_HOST,
-            port=Config.REDIS_PORT,
-            db=Config.REDIS_DB,
+            host=Config.REDIS_HOST, port=Config.REDIS_PORT, db=Config.REDIS_DB
         )
 
         redis_client.set(self.id, self.serialize())
@@ -184,7 +220,7 @@ def deserialize_unlocking_script(unlocking_script: bytes) -> dict:
     return {
         "signature": signature,
         "public_key": pub_key,
-        "address": pubkey_to_address(pub_key.encode())
+        "address": pubkey_to_address(pub_key.encode()),
     }
 
 

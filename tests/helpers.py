@@ -1,15 +1,15 @@
+# helpers.py
+
 from tests.constants import WALLET_1, WALLET_2, WALLET_3
 from binascii import unhexlify
-from luracoin.transactions import (
-    Transaction,
-)
+from luracoin.transactions import Transaction
 
 
 def add_test_transactions():
     transaction1 = Transaction(
         chain=1,
         nonce=1,
-        fee=57_000,
+        fee=57000,
         value=5_000_000,
         to_address=WALLET_2["address"],
     )
@@ -33,7 +33,7 @@ def add_test_transactions():
     transaction3 = Transaction(
         chain=1,
         nonce=2,
-        fee=5_700,
+        fee=5700,
         value=500_000,
         to_address=WALLET_1["address"],
     )
@@ -43,11 +43,7 @@ def add_test_transactions():
     transaction3.to_transaction_pool()
 
     transaction4 = Transaction(
-        chain=1,
-        nonce=2,
-        fee=50,
-        value=100,
-        to_address=WALLET_1["address"],
+        chain=1, nonce=2, fee=50, value=100, to_address=WALLET_1["address"]
     )
 
     transaction4 = transaction4.sign(unhexlify(WALLET_2["private_key"]))
@@ -55,11 +51,7 @@ def add_test_transactions():
     transaction4.to_transaction_pool()
 
     transaction5 = Transaction(
-        chain=1,
-        nonce=2,
-        fee=150,
-        value=600,
-        to_address=WALLET_2["address"],
+        chain=1, nonce=2, fee=150, value=600, to_address=WALLET_2["address"]
     )
 
     transaction5 = transaction5.sign(unhexlify(WALLET_3["private_key"]))

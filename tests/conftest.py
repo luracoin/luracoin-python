@@ -1,3 +1,4 @@
+# conftest.py
 import pytest
 import os
 import shutil
@@ -20,17 +21,17 @@ def init_blockchain():
         fee=100,
         value=50000,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
-        unlock_sig=None
+        unlock_sig=None,
     )
 
     block1 = Block(
         version=1,
         height=0,
         prev_block_hash="0" * 64,
-        timestamp=1623168442,
-        bits=b'\1f\x00\xff\xff',
+        timestamp=1_623_168_442,
+        bits=b"\1f\x00\xff\xff",
         nonce=0,
-        txns=[coinbase_transacion]
+        txns=[coinbase_transacion],
     )
 
     block1.save()
@@ -53,12 +54,10 @@ def blockchain() -> Generator:
 
     if os.path.exists(folder):
         shutil.rmtree(folder)
-    
+
     print("clean tests")
     redis_client = redis.Redis(
-        host=Config.REDIS_HOST,
-        port=Config.REDIS_PORT,
-        db=Config.REDIS_DB,
+        host=Config.REDIS_HOST, port=Config.REDIS_PORT, db=Config.REDIS_DB
     )
 
     redis_client.flushdb()

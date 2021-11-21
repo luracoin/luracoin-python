@@ -1,7 +1,7 @@
 import os
 import pickledb
 
-CHAIN_FILENAME = 'chainstate.bdb'
+CHAIN_FILENAME = "chainstate.bdb"
 
 
 def open_chain_database():

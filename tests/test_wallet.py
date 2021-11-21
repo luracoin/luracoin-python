@@ -80,12 +80,14 @@ def test_pubkey_to_address() -> None:
     )
     address = pubkey_to_address(unhexlify(pubkey_1))
     assert address == "1BjA85uVq73B55pSPMxNsLta6ZC5V3d82M"
+    assert len(address) == 34
 
     pubkey_2 = (
         "02471b9c963dde49bc93eb46c773d92231576321f1a88821a65cf3a8c8b286af71"
     )
     address = pubkey_to_address(unhexlify(pubkey_2))
     assert address == "1De81fKXsre9MiruFZZzMJkaeuEptJgCP2"
+    assert len(address) == 34
 
 
 def test_create_wallet() -> None:

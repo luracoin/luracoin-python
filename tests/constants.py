@@ -6,7 +6,7 @@ WALLET_1 = {
     "private_key": "a175567e47c1e4ac5e89c779edb553c9f04260578beb506940524bfdb8f96a45",
     "public_key": "037ef87375ebebc9d4cd0d1708e5234f6f0544859404888ff9cbfc9a6d7a6447b4",
     "verifying_key": "7ef87375ebebc9d4cd0d1708e5234f6f0544859404888ff9cbfc9a6d7a6447b42edcac14cc958c499efe72e4053128088e350f285d738967e77cd9eef8274217",
-    "address": "1GLsjE1KqDG1dsxzzZhHbCJWCtuDXJEmFC"
+    "address": "1GLsjE1KqDG1dsxzzZhHbCJWCtuDXJEmFC",
 }
 
 WALLET_2 = {
@@ -17,7 +17,7 @@ WALLET_2 = {
     "private_key": "63791213522ca3c5e112703969ba416005ac02a3b4a907405ced2f2c48309e1d",
     "public_key": "02af8170bc0b6e773b7460909a7ea3bf9f4b45ef462db531eb6f2338bfe400f711",
     "verifying_key": "af8170bc0b6e773b7460909a7ea3bf9f4b45ef462db531eb6f2338bfe400f711abeecdc84a204f20f5b2a38caa78f75a479d4cc08635af6a29ffcc21b69d1bce",
-    "address": "17AzT876YYxwzScAgJzVw19yEYgjDx7EsY"
+    "address": "17AzT876YYxwzScAgJzVw19yEYgjDx7EsY",
 }
 
 WALLET_3 = {
@@ -28,32 +28,32 @@ WALLET_3 = {
     "private_key": "38bf17c8fbee7bcd510776663ec5ec535cbc76d0c3b20dfbdb64e12ab5f6e52e",
     "public_key": "03d0f91380dfaa00fb1cc02def15b73774706d57e15829c067aa5b1c033048d409",
     "verifying_key": "d0f91380dfaa00fb1cc02def15b73774706d57e15829c067aa5b1c033048d409c6fba87418934c0a8300666f903ce4ac13a85aec6fd5a135c3a7d66c1a0373e3",
-    "address": "19NH8dd4DkTcyTAgKE2F5zH72myGRutoWp"
+    "address": "19NH8dd4DkTcyTAgKE2F5zH72myGRutoWp",
 }
 
 INITIAL_FUNDS = [
     {
-      "chain": 1,
-      "nonce": 1,
-      "fee": 0,
-      "value": 500000,
-      "to_address": "1GLsjE1KqDG1dsxzzZhHbCJWCtuDXJEmFC",
-      "unlock_sig": "0"
+        "chain": 1,
+        "nonce": 1,
+        "fee": 0,
+        "value": 500_000,
+        "to_address": "1GLsjE1KqDG1dsxzzZhHbCJWCtuDXJEmFC",
+        "unlock_sig": "0",
     },
     {
-      "chain": 1,
-      "nonce": 2,
-      "fee": 0,
-      "value": 5000000,
-      "to_address": "17AzT876YYxwzScAgJzVw19yEYgjDx7EsY",
-      "unlock_sig": "0"
+        "chain": 1,
+        "nonce": 2,
+        "fee": 0,
+        "value": 5_000_000,
+        "to_address": "17AzT876YYxwzScAgJzVw19yEYgjDx7EsY",
+        "unlock_sig": "0",
     },
     {
-      "chain": 1,
-      "nonce": 3,
-      "fee": 0,
-      "value": 15000000,
-      "to_address": "19NH8dd4DkTcyTAgKE2F5zH72myGRutoWp",
-      "unlock_sig": "0"
-    }
+        "chain": 1,
+        "nonce": 3,
+        "fee": 0,
+        "value": 15_000_000,
+        "to_address": "19NH8dd4DkTcyTAgKE2F5zH72myGRutoWp",
+        "unlock_sig": "0",
+    },
 ]

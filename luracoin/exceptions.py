@@ -4,3 +4,7 @@ class BlockNotValidError(Exception):
 
 class WalletAlreadyExistError(Exception):
     """Wallet already exist"""
+
+
+class TransactionNotValid(Exception):
+    """Transaction not valid"""
