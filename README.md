@@ -18,9 +18,9 @@ It's easy and fun. We don't need performance yet, we need more contributors. I w
 #### Diferences with Bitcoin 
 - 2 more bytes on the header (Nonce).  
 - Block time every 5 min instead of 10 min.  
-- 4MB limit instead of 1MB.
+- 8MB block size limit instead of 1MB.
 - Supply of 21 billion coins instead of 21 million.
-- No merkle tree
+- Account Model instead of UTXO
 
 
 ## Testing
