@@ -9,6 +9,7 @@ class Config:
 
     WALLET_PATH = BASE_DIR + "/bin/wallet.dat"
     COINBASE_UNLOCK_SIGNATURE = binascii.unhexlify("0" * 256)
+    STAKING_ADDRESS = "0" * 34
 
     # This will be appended at the end of Block and transaction transmission to
     # prevent other networks of currencies to capture them. Usually blockchains

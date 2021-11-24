@@ -6,4 +6,5 @@ TRANSACTION_FIELD_TO_ADDRESS = "Attribute 'to_address' is not valid."
 TRANSACTION_FIELD_SIGNATURE = "Attribute 'signature' is not valid."
 
 TRANSACTION_INVALID_SIGNATURE = "Invalid signature."
+TRANSACTION_INVALID_STAKING = "Invalid staking transaction."
 TRANSACTION_NO_BALANCE = "Signing address has no balance."

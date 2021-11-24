@@ -187,6 +187,9 @@ class Block:
         6) [ ] Timestamp
         7) [X] Block Height
         """
+        
+        # Difficulty Check
+
         current_height = get_value("height")
         if not current_height:
             current_height = -1
@@ -198,6 +201,11 @@ class Block:
         if self.height != current_height + 1:
             print("Block height is invalid")
             return False
+        
+        for txn in self.txns:
+            if not txn.validate():
+                print("Transaction is invalid")
+                return False
 
         return True
 

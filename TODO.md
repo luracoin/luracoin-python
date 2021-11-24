@@ -1,7 +1,12 @@
-[] - POW Validation
-[] - Transaction signatures validation
-[] - Generate new blocks
+# Tasks
+
+[x] - Address format
 [] - Chainstate and Block keys
+[] - Burn Transactions
+[] - Miners List
+[] - POW Current Difficulty
+[] - Block difficulty validation
+[] - Timestamp validation
 [] - Basic P2P
 [] - Mempool
 [] - Mining

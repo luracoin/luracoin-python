@@ -9,7 +9,7 @@ from luracoin.transactions import (
 from luracoin.config import Config
 
 
-def test_transaction_to_json():
+def test_to_json():
     transacion = Transaction(
         chain=1,
         nonce=8763,
@@ -57,7 +57,7 @@ def test_transaction_serializer_to_sign():
     assert transaction_original.json() == transaction.json()
 
 
-def test_transaction_serializer_with_coinbase_signatures():
+def test_serializer_with_coinbase_signatures():
     transaction_original = Transaction(
         chain=1,
         nonce=4_294_967_295,
@@ -77,8 +77,7 @@ def test_transaction_serializer_with_coinbase_signatures():
 
     assert transaction_original.json() == transaction.json()
 
-
-def test_transaction_signatures(mocker):
+def test_signatures(mocker):
     PRIVATE_KEY_1 = (
         b"\xb1\x80E\xceRo\xfeG[\x89\xe2\xc1+\xfd\xf9\xc4"
         b"\x80w\x91\x836o~\xbe\x87\x82bb\xab@\xf9N"
@@ -93,7 +92,6 @@ def test_transaction_signatures(mocker):
     )
 
     transaction = transaction_original.sign(PRIVATE_KEY_1)
-    print(json.dumps(transaction.json(), indent=4))
     assert transaction.validate() == True
 
     # Incorrect Public Key / Signature

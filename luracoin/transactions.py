@@ -136,6 +136,14 @@ class Transaction:
             if raise_exception:
                 raise TransactionNotValid(errors.TRANSACTION_FIELD_SIGNATURE)
             return False
+        
+        if (
+            self.unlock_sig == Config.COINBASE_UNLOCK_SIGNATURE and
+            self.to_address == Config.STAKING_ADDRESS
+        ):
+            if raise_exception:
+                raise TransactionNotValid(errors.TRANSACTION_INVALID_STAKING)
+            return False
 
         return True
 

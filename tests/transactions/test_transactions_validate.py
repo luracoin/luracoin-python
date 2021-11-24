@@ -1,6 +1,7 @@
 import pytest
 import json
 import binascii
+from binascii import unhexlify
 from pymongo import MongoClient
 from random import randint
 from luracoin.transactions import (
@@ -11,6 +12,8 @@ from luracoin.transactions import (
 from luracoin.config import Config
 from luracoin.exceptions import TransactionNotValid
 from luracoin import errors
+from tests.constants import WALLET_1, WALLET_2, WALLET_3
+
 
 PRIVATE_KEY_1 = (
     b"\xb1\x80E\xceRo\xfeG[\x89\xe2\xc1+\xfd\xf9\xc4"
@@ -264,3 +267,32 @@ def test_unlock_sig(mocker):
     transaction.unlock_sig = binascii.unhexlify("1" * 256)
     assert transaction.validate_fields() == True
     assert transaction.validate_fields(raise_exception=True) == True
+
+
+def test_staking_transaction():
+    transaction = Transaction(
+        chain=1,
+        nonce=4_294_967_295,
+        fee=57000,
+        value=5_000_000,
+        to_address=Config.STAKING_ADDRESS,
+        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
+    )
+
+    assert transaction.validate() is False
+    with pytest.raises(
+        TransactionNotValid, match=errors.TRANSACTION_INVALID_STAKING
+    ):
+        transaction.validate_fields(raise_exception=True)
+
+    transaction = Transaction(
+        chain=1,
+        nonce=4_294_967_295,
+        fee=57000,
+        value=5_000_000,
+        to_address=Config.STAKING_ADDRESS,
+    )
+
+    transaction = transaction.sign(unhexlify(WALLET_1["private_key"]))
+
+    assert transaction.validate() is True
