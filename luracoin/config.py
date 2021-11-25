@@ -26,6 +26,10 @@ class Config:
     DATA_DIR = BASE_DIR + "/bin/data/"
     BLOCKS_DIR = DATA_DIR + "blocks/"
 
+    DATABASE_ACCOUNTS = "accounts.db"
+    DATABASE_CHAINSTATE = "chainstate.db"
+    DATABASE_BLOCKS = "blocks.db"
+
     # Max file size of each blkXXXX.dat in Bytes (128MiB)
     MAX_FILE_SIZE = 134_217_728
 

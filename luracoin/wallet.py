@@ -100,4 +100,3 @@ def pubkey_to_address(pubkey: bytes) -> str:
     if len(address) != 34:
         raise RuntimeError("Invalid address")
     return address
-

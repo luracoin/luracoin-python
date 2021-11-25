@@ -23,6 +23,14 @@ It's easy and fun. We don't need performance yet, we need more contributors. I w
 - Account Model instead of UTXO
 
 
+## Install
+
+#### MacOS
+```shell
+brew install rocksdb
+```
+
+
 ## Testing
 For testing use ```pytest```
 ```shell

@@ -20,6 +20,7 @@ PRIVATE_KEY_1 = (
     b"\x80w\x91\x836o~\xbe\x87\x82bb\xab@\xf9N"
 )
 
+
 def test_validate_signatures(mocker):
     """
     Test to check that the signatures are valid.

@@ -77,6 +77,7 @@ def test_serializer_with_coinbase_signatures():
 
     assert transaction_original.json() == transaction.json()
 
+
 def test_signatures(mocker):
     PRIVATE_KEY_1 = (
         b"\xb1\x80E\xceRo\xfeG[\x89\xe2\xc1+\xfd\xf9\xc4"

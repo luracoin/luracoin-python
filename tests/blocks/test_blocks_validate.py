@@ -58,5 +58,3 @@ def test_validate():
 
     proof_of_work(block=block2, starting_at=1162892)
     assert block2.nonce == 1162893
-
-

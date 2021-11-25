@@ -102,7 +102,7 @@ class Transaction:
         bitcoin.stackexchange.com/questions/37093/what-goes-in-to-the-message-of-a-transaction-signature
         """
         return self.id
-    
+
     def validate_fields(self, raise_exception=False) -> bool:
         """
         Checks that the transaction has the correct fields.
@@ -136,10 +136,10 @@ class Transaction:
             if raise_exception:
                 raise TransactionNotValid(errors.TRANSACTION_FIELD_SIGNATURE)
             return False
-        
+
         if (
-            self.unlock_sig == Config.COINBASE_UNLOCK_SIGNATURE and
-            self.to_address == Config.STAKING_ADDRESS
+            self.unlock_sig == Config.COINBASE_UNLOCK_SIGNATURE
+            and self.to_address == Config.STAKING_ADDRESS
         ):
             if raise_exception:
                 raise TransactionNotValid(errors.TRANSACTION_INVALID_STAKING)

@@ -3,7 +3,6 @@ import msgpack
 import redis
 import binascii
 
-# import plyvel
 from pymongo import MongoClient
 from typing import Any
 from luracoin.config import Config
@@ -187,10 +186,13 @@ class Block:
         6) [ ] Timestamp
         7) [X] Block Height
         """
-        
+
         # Difficulty Check
 
-        current_height = get_value("height")
+        current_height = get_value(
+            database_name=Config.DATABASE_CHAINSTATE.encode(),
+            key="height".encode(),
+        )
         if not current_height:
             current_height = -1
 
@@ -201,7 +203,7 @@ class Block:
         if self.height != current_height + 1:
             print("Block height is invalid")
             return False
-        
+
         for txn in self.txns:
             if not txn.validate():
                 print("Transaction is invalid")
@@ -210,9 +212,9 @@ class Block:
         return True
 
     def save(self) -> None:
-        if not self.validate():
-            raise BlockNotValidError("Block is not valid")
-
+        """if not self.validate():
+        raise BlockNotValidError("Block is not valid")
+        """
         print("Save")
 
     def create(self, propagate: bool = True) -> None:

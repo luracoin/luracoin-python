@@ -26,7 +26,7 @@ def test_generate_wallet() -> dict:
 
 
 def test_generate_wallet__check_input(  # type: ignore
-    test_generate_wallet
+    test_generate_wallet,
 ) -> None:
     wallet = test_generate_wallet
     assert len(wallet["input"]) == 64
@@ -39,21 +39,21 @@ def test_generate_wallet__check_address(test_generate_wallet):  # type: ignore
 
 
 def test_generate_wallet__check_verifying_key(  # type: ignore
-    test_generate_wallet
+    test_generate_wallet,
 ) -> None:
     wallet = test_generate_wallet
     assert len(wallet["verifying_key"]) == 128
 
 
 def test_generate_wallet__check_public_key(  # type: ignore
-    test_generate_wallet
+    test_generate_wallet,
 ) -> None:
     wallet = test_generate_wallet
     assert len(wallet["public_key"]) == 66
 
 
 def test_generate_wallet__check_private_key(  # type: ignore
-    test_generate_wallet
+    test_generate_wallet,
 ) -> None:
     wallet = test_generate_wallet
     assert len(wallet["private_key"]) == 64

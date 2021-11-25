@@ -60,3 +60,4 @@ docs/_build/
 .mypy_cache/*
 artifacts/
 .vscode/
+data/
