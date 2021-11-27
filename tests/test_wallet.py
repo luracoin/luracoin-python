@@ -86,7 +86,7 @@ def test_pubkey_to_address() -> None:
         "02471b9c963dde49bc93eb46c773d92231576321f1a88821a65cf3a8c8b286af71"
     )
     address = pubkey_to_address(unhexlify(pubkey_2))
-    assert address == "1De81fKXsre9MiruFZZzMJkaeuEptJgCP2"
+    assert address == "LXs5GsdMxWtCcXZ4RhZHdKpLs7c71q18eM"
     assert len(address) == 34
 
 

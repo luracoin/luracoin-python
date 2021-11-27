@@ -1,4 +1,5 @@
 import binascii
+import pytest
 import json
 from tests.helpers import add_test_transactions
 from luracoin.helpers import bits_to_target
@@ -9,6 +10,7 @@ from luracoin.config import Config
 from luracoin.pow import proof_of_work
 
 
+@pytest.mark.skip(reason="WIP")
 def test_validate():
     coinbase_transaction_1 = Transaction(
         chain=1,

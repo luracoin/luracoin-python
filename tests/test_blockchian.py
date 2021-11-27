@@ -16,6 +16,7 @@ from operator import itemgetter
 from tests.helpers import add_test_transactions
 
 
+@pytest.mark.skip(reason="WIP")
 def test_block_select_transactions():
     redis_client = redis.Redis(
         host=Config.REDIS_HOST, port=Config.REDIS_PORT, db=Config.REDIS_DB

@@ -23,8 +23,10 @@ class Config:
     PORT = 9999
 
     # Data dir
-    DATA_DIR = BASE_DIR + "/bin/data/"
+    DATA_DIR = BASE_DIR + "/data/"
+    DATA_TEST_DIR = BASE_DIR + "/tests/data/"
     BLOCKS_DIR = DATA_DIR + "blocks/"
+    BLOCKS_TEST_DIR = DATA_TEST_DIR + "blocks/"
 
     DATABASE_ACCOUNTS = "accounts.db"
     DATABASE_CHAINSTATE = "chainstate.db"
@@ -34,6 +36,16 @@ class Config:
     MAX_FILE_SIZE = 134_217_728
 
     # The infamous max block size.
+    MAX_BLOCK_SIZE = {
+        0: 10_000,
+        28_800: 50_000,
+        57_600: 75_000,
+        86_400: 200_000,
+        172_800: 1_000_000,
+        259_200: 2_000_000,
+        345_600: 3_000_000,
+        432_000: 8_000_000,
+    }
     MAX_BLOCK_SERIALIZED_SIZE = 8_000_000  # bytes = 8MB
 
     # Number of blocks for a transaction to become balance

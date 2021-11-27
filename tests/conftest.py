@@ -63,17 +63,24 @@ def blockchain() -> Generator:
     redis_client.flushdb()
 
 
-"""
 @pytest.fixture(autouse=True)
 def run_before_and_after_tests(tmpdir):
     print("Init tests")
+    shutil.rmtree(Config.DATA_TEST_DIR)
+
+    os.makedirs(Config.DATA_TEST_DIR)
+    os.makedirs(Config.BLOCKS_TEST_DIR)
+
     Config.REDIS_DB = Config.REDIS_DB_TESTS
+    Config.DATA_DIR = Config.DATA_TEST_DIR
+    Config.BLOCKS_DIR = Config.BLOCKS_TEST_DIR
     # Setup: fill with any logic you want
 
-    yield # this is where the testing happens
+    yield  # this is where the testing happens
 
     # Teardown : fill with any logic you want
     print("clean tests")
+    """
     redis_client = redis.Redis(
         host=Config.REDIS_HOST,
         port=Config.REDIS_PORT,
@@ -81,4 +88,4 @@ def run_before_and_after_tests(tmpdir):
     )
 
     redis_client.flushdb()
-"""
+    """
