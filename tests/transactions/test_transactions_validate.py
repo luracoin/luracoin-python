@@ -2,7 +2,6 @@ import pytest
 import json
 import binascii
 from binascii import unhexlify
-from pymongo import MongoClient
 from random import randint
 from luracoin.transactions import (
     Transaction,

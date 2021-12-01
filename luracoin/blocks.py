@@ -1,10 +1,8 @@
 import json
-import msgpack
 import redis
 import binascii
 import rocksdb
 
-from pymongo import MongoClient
 from typing import Any
 from luracoin.config import Config
 from luracoin.exceptions import BlockNotValidError
@@ -93,11 +91,6 @@ class Block:
 
         self.txns = transactions
         return self
-
-    """
-    def serialize(self, to_json=True) -> bytes:
-        return msgpack.packb(self.json(), use_bin_type=True)
-    """
 
     def serialize(self) -> bytes:
         version_bytes = self.version.to_bytes(

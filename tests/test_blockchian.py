@@ -1,7 +1,6 @@
 import pytest
 import json
 import redis
-from pymongo import MongoClient
 from random import randint
 from luracoin.config import Config
 from luracoin.blocks import Block

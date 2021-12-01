@@ -1,4 +1,3 @@
-import msgpack
 import ecdsa
 import json
 import redis

@@ -1,5 +1,4 @@
 import json
-from pymongo import MongoClient
 from random import randint
 from luracoin.transactions import (
     Transaction,
