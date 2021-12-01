@@ -77,7 +77,6 @@ def test_chain_current_file_number_increase_when_file_surpases_the_max_size_allo
     Config.MAX_FILE_SIZE = 1000  # Override the max file size for the test
 
     current_file = get_current_blk_file()
-    print(current_file)
     current_file_number = chain.current_file_number
 
     assert current_file_number == 0

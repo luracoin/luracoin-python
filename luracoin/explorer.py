@@ -1,7 +1,11 @@
+import time
 import pytest
 import os
 import shutil
 import redis
+import json
+from random import randint
+import rocksdb
 
 from typing import Generator
 from luracoin.blocks import Block
@@ -9,6 +13,8 @@ from luracoin.config import Config
 from luracoin.transactions import Transaction
 from luracoin.pow import proof_of_work
 from luracoin.client import generate_wallet
+from luracoin.chain import set_value, get_value
+from luracoin.helpers import sha256d
 
 """
 coinbase_transaction_1 = Transaction(
@@ -39,6 +45,10 @@ block1.nonce = nonce
 block1.save()
 """
 
+
+"""
+# GENERATE 1K addresses
+
 a = 0
 b = 0
 
@@ -48,5 +58,71 @@ for _ in range(1000):
         a += 1
     else:
         b += 1
-
 print(a, b)
+"""
+"""
+db = rocksdb.DB("test.db", rocksdb.Options(create_if_missing=True))
+
+
+a = 0
+b = 0
+for i in range(3000000):
+    print(f"{i}/3000000 || a: {a} / b: {b}")
+    wallet = generate_wallet()
+    db.put(wallet["address"].encode(), randint(20000, 500000000).to_bytes(8, byteorder="little", signed=False))
+
+    if wallet["address"].startswith("L"):
+        a += 1
+    else:
+        b += 1
+"""
+"""
+count = 0
+it = db.iteritems()
+it.seek_to_first()
+
+accounts = {}
+start = time.time()
+
+for _ in range(40):
+    for k, v in it:
+        count += 1
+        if len(v) > 8:
+            db.delete(k)
+        else:
+            accounts[k.decode()] = int.from_bytes(v, byteorder="little", signed=False)
+
+for _ in range(40):
+    accounts_ordered = {}
+    for k in sorted(accounts):
+        accounts_ordered[k] = accounts[k]
+
+
+
+accounts_ordered = {}
+for k in sorted(accounts):
+    accounts_ordered[k] = accounts[k]
+
+print(json.dumps(accounts_ordered))
+print(sha256d(json.dumps(accounts_ordered).encode()))
+
+print("\n\n\n\n")
+print(f"Total time: {time.time() - start}")
+print(f"Total: {count}")
+"""
+
+"""
+set_value(
+    Config.DATABASE_ACCOUNTS, 
+    "marcos".encode(), 
+    int(100).to_bytes(8, byteorder="little", signed=False)
+)
+
+
+print(get_value(Config.DATABASE_ACCOUNTS, "marcos".encode()))
+"""
+
+with open(
+    "/Users/marcosaguayo/dev/luracoin-python/data/blocks/blk000000.dat", "rb"
+) as f:
+    print(f.read())

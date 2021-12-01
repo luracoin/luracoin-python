@@ -2,6 +2,7 @@ import json
 import msgpack
 import redis
 import binascii
+import rocksdb
 
 from pymongo import MongoClient
 from typing import Any
@@ -9,7 +10,11 @@ from luracoin.config import Config
 from luracoin.exceptions import BlockNotValidError
 from luracoin.helpers import sha256d, bits_to_target
 from luracoin.transactions import Transaction
-from luracoin.chain import get_value
+from luracoin.chain import (
+    set_value,
+    get_value,
+    get_current_blk_file,
+)
 
 
 class Block:
@@ -109,6 +114,7 @@ class Block:
         bits_bytes = self.bits
         nonce_bytes = self.nonce.to_bytes(4, byteorder="little", signed=False)
 
+        """
         print("\n----------")
         print(f"magic bytes: {Config.MAGIC_BYTES.hex()}")
         print(f"version_bytes: {version_bytes.hex()}")
@@ -119,6 +125,7 @@ class Block:
         print(f"bits_bytes: {bits_bytes.hex()}")
         print(f"nonce_bytes: {nonce_bytes.hex()}")
         print("----------\n")
+        """
 
         transaction_bytes = b""
         for txn in self.txns:
@@ -212,10 +219,24 @@ class Block:
         return True
 
     def save(self) -> None:
-        """if not self.validate():
-        raise BlockNotValidError("Block is not valid")
         """
+        if not self.validate():
+            raise BlockNotValidError("Block is not valid")
+        """
+
         print("Save")
+        current_block_file = f"{Config.BLOCKS_DIR}{get_current_blk_file()}"
+        print(current_block_file)
+
+        a = b""
+        for _ in range(10000):
+            a += self.serialize()
+
+        with open(current_block_file, "wb") as w:
+            w.write(a)
+
+        # Update height
+        # Update current block file name
 
     def create(self, propagate: bool = True) -> None:
         pass
