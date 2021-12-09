@@ -223,7 +223,7 @@ class Block:
             w.write(self.serialize())
 
         with open(
-            "/Users/marcosaguayo/dev/luracoin-python/tests/data/blocks/blk000000.dat",
+            f"{Config.BASE_DIR}/tests/data/blocks/blk000000.dat",
             "rb",
         ) as f:
             print(f.read())
@@ -234,7 +234,7 @@ class Block:
             w.write(self.serialize())
 
         with open(
-            "/Users/marcosaguayo/dev/luracoin-python/tests/data/blocks/blk000000.dat",
+            f"{Config.BASE_DIR}/tests/data/blocks/blk000000.dat",
             "rb",
         ) as f:
             print(f.read())
