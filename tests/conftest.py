@@ -34,8 +34,6 @@ def init_blockchain():
         txns=[coinbase_transacion],
     )
 
-    block1.save()
-
 
 @pytest.fixture()
 def blockchain() -> Generator:

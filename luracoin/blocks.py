@@ -8,7 +8,6 @@ from luracoin.config import Config
 from luracoin.exceptions import BlockNotValidError
 from luracoin.helpers import sha256d, bits_to_target
 from luracoin.transactions import Transaction
-from luracoin.chain import set_value, get_value, get_current_blk_file, Chain
 
 
 class Block:
@@ -154,8 +153,6 @@ class Block:
         self.txns = []
         block_transations = block_serialized[89:]
 
-        print(f"block_transations: {block_transations.hex()}")
-
         for i in range(0, len(block_transations), 179):
             txn = Transaction()
             txn.deserialize(block_transations[i : i + 179])
@@ -182,22 +179,8 @@ class Block:
         6) [ ] Timestamp
         7) [X] Block Height
         """
-
-        # Difficulty Check
-
-        current_height = get_value(
-            database_name=Config.DATABASE_CHAINSTATE.encode(),
-            key="height".encode(),
-        )
-        if not current_height:
-            current_height = -1
-
         if not self.is_valid_proof():
             print("Proof of work is invalid")
-            return False
-
-        if self.height != current_height + 1:
-            print("Block height is invalid")
             return False
 
         for txn in self.txns:
@@ -206,40 +189,6 @@ class Block:
                 return False
 
         return True
-
-    def save(self) -> None:
-        """
-        if not self.validate():
-            raise BlockNotValidError("Block is not valid")
-        """
-        chain = Chain()
-        chain.set_height(self.height)
-
-        print("Save")
-        current_block_file = f"{Config.BLOCKS_DIR}{get_current_blk_file()}"
-        print(current_block_file)
-
-        with open(current_block_file, "ab") as w:
-            w.write(self.serialize())
-
-        with open(
-            f"{Config.BASE_DIR}/tests/data/blocks/blk000000.dat",
-            "rb",
-        ) as f:
-            print(f.read())
-
-        print("==========================")
-
-        with open(current_block_file, "ab") as w:
-            w.write(self.serialize())
-
-        with open(
-            f"{Config.BASE_DIR}/tests/data/blocks/blk000000.dat",
-            "rb",
-        ) as f:
-            print(f.read())
-        # Update height
-        # Update current block file name
 
     def create(self, propagate: bool = True) -> None:
         pass

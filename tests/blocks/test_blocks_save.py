@@ -7,6 +7,7 @@ from luracoin.transactions import Transaction
 from tests.helpers import add_test_transactions
 from luracoin.config import Config
 from luracoin.pow import proof_of_work
+from luracoin.chain import Chain
 
 
 def test_block_save():
@@ -30,6 +31,8 @@ def test_block_save():
     )
 
     print(block1.json())
-    block1.save()
+
+    chain = Chain()
+    chain.add_block(block1)
 
     assert False

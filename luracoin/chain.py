@@ -2,6 +2,8 @@ import json
 import os
 import rocksdb
 from luracoin.config import Config
+from luracoin.blocks import Block
+import safer
 
 
 class Chain:
@@ -52,6 +54,14 @@ class Chain:
 
         return file_number
 
+    # TODO: WIP
+    @property
+    def last_block(self):
+        """
+        Return the last block
+        """
+        return self.get_block(self.height)
+
     def set_current_file_number(self, file_number):
         """
         Set the current file number
@@ -86,6 +96,22 @@ class Chain:
             value=file_number.to_bytes(4, byteorder="little", signed=False),
         )
 
+    def get_blocks_from_file(self, fileNumber):
+        """
+        Get all blocks from a file
+        """
+        block_file = f"{Config.BLOCKS_DIR}blk{blk_file_format(fileNumber)}.dat"
+        blocks = []
+
+        with safer.open(block_file, "rb") as f:
+            file_bytes = f.read()
+            while file_bytes:
+                block_size = int.from_bytes(file_bytes[:4], byteorder="little", signed=False)
+                blocks.append(Block().deserialize(file_bytes[4:block_size]))
+                file_bytes = file_bytes[4+block_size:]
+
+        return blocks
+
     def get_account(self, address):
         """
         Get the account for a given address
@@ -108,6 +134,71 @@ class Chain:
             key=address.encode(),
             value=json.dumps(data).encode(),
         )
+
+    def add_block(self, block) -> None:
+        """
+        if not self.validate():
+            raise BlockNotValidError("Block is not valid")
+        """
+        print("Save")
+        print(self.current_file_number)
+        current_block_file = f"{Config.BLOCKS_DIR}{get_current_blk_file()}"
+        print(current_block_file)
+
+        with safer.open(current_block_file, "ab") as w:
+            serialized_block = block.serialize()
+            block_size = len(serialized_block)
+            print(f"\nBlock size: {block_size} {block_size.to_bytes(4, byteorder='little', signed=False)}\n")
+            w.write(block_size.to_bytes(4, byteorder="little", signed=False) + serialized_block)
+
+        with safer.open(
+            f"{Config.BASE_DIR}/tests/data/blocks/blk000000.dat",
+            "rb",
+        ) as f:
+            print(f.read())
+
+        print("==========================")
+        for _ in range(12):
+            with safer.open(current_block_file, "ab") as w:
+                w.write(block_size.to_bytes(4, byteorder="little", signed=False) + serialized_block)
+
+        print(self.get_blocks_from_file(0))
+        self.set_height(block.height)
+        # Update current block file name
+
+    # TODO: WIP
+    def get_block(self, height):
+        """
+        Get a block by height
+        """
+        block_file_number = self.get_block_file_number(height)
+        if not block_file_number:
+            return None
+
+        block_file = f"{Config.BLOCKS_DIR}{blk_file_format(block_file_number)}"
+
+        with safer.open(block_file, "rb") as f:
+            f.seek(self.get_block_offset(height))
+            size = int.from_bytes(f.read(4), byteorder="little", signed=False)
+            block_data = f.read(size)
+
+        return Block.deserialize(block_data)
+
+    def validate_block(self, block) -> bool:
+        """
+        Validate a block
+        """
+        if not block.validate():
+            return False
+
+        if block.height != self.height + 1:
+            return False
+
+        if block.previous_hash != self.get_block_hash(self.height):
+            return False
+
+        return True
+        
 
 
 def open_database(database_name: str) -> rocksdb.DB:
