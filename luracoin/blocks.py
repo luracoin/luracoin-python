@@ -8,11 +8,7 @@ from luracoin.config import Config
 from luracoin.exceptions import BlockNotValidError
 from luracoin.helpers import sha256d, bits_to_target
 from luracoin.transactions import Transaction
-from luracoin.chain import (
-    set_value,
-    get_value,
-    get_current_blk_file,
-)
+from luracoin.chain import set_value, get_value, get_current_blk_file, Chain
 
 
 class Block:
@@ -216,18 +212,32 @@ class Block:
         if not self.validate():
             raise BlockNotValidError("Block is not valid")
         """
+        chain = Chain()
+        chain.set_height(self.height)
 
         print("Save")
         current_block_file = f"{Config.BLOCKS_DIR}{get_current_blk_file()}"
         print(current_block_file)
 
-        a = b""
-        for _ in range(10000):
-            a += self.serialize()
+        with open(current_block_file, "ab") as w:
+            w.write(self.serialize())
 
-        with open(current_block_file, "wb") as w:
-            w.write(a)
+        with open(
+            "/Users/marcosaguayo/dev/luracoin-python/tests/data/blocks/blk000000.dat",
+            "rb",
+        ) as f:
+            print(f.read())
 
+        print("==========================")
+
+        with open(current_block_file, "ab") as w:
+            w.write(self.serialize())
+
+        with open(
+            "/Users/marcosaguayo/dev/luracoin-python/tests/data/blocks/blk000000.dat",
+            "rb",
+        ) as f:
+            print(f.read())
         # Update height
         # Update current block file name
 
