@@ -26,7 +26,7 @@ def test_validate():
         height=0,
         prev_block_hash="0" * 64,
         timestamp=1_623_168_442,
-        bits=b"\x1e\x0f\xff\xff",
+        bits=Config.STARTING_DIFFICULTY,
         nonce=0,
         txns=[coinbase_transaction_1],
     )
@@ -53,7 +53,7 @@ def test_validate():
         height=1,
         prev_block_hash=block1.id,
         timestamp=1_623_208_442,
-        bits=b"\x1e\x0f\xff\xff",
+        bits=Config.STARTING_DIFFICULTY,
         nonce=0,
         txns=[coinbase_transaction_2, *transactions],
     )

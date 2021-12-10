@@ -140,31 +140,21 @@ class Chain:
         if not self.validate():
             raise BlockNotValidError("Block is not valid")
         """
-        print("Save")
-        print(self.current_file_number)
+        file_number = self.current_file_number
         current_block_file = f"{Config.BLOCKS_DIR}{get_current_blk_file()}"
-        print(current_block_file)
 
         with safer.open(current_block_file, "ab") as w:
             serialized_block = block.serialize()
             block_size = len(serialized_block)
-            print(f"\nBlock size: {block_size} {block_size.to_bytes(4, byteorder='little', signed=False)}\n")
             w.write(block_size.to_bytes(4, byteorder="little", signed=False) + serialized_block)
-
-        with safer.open(
-            f"{Config.BASE_DIR}/tests/data/blocks/blk000000.dat",
-            "rb",
-        ) as f:
-            print(f.read())
-
-        print("==========================")
-        for _ in range(12):
-            with safer.open(current_block_file, "ab") as w:
-                w.write(block_size.to_bytes(4, byteorder="little", signed=False) + serialized_block)
 
         print(self.get_blocks_from_file(0))
         self.set_height(block.height)
-        # Update current block file name
+        self.set_block_file_number(block.height, file_number)
+        # TODO: Update current block file name
+        # TODO: Update balances
+        # TODO: Update stacking
+        # TODO: Update difficulty
 
     # TODO: WIP
     def get_block(self, height):

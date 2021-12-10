@@ -15,6 +15,7 @@ class Block:
         self,
         version: int = None,
         height: int = None,
+        miner: str = None,
         prev_block_hash: str = None,
         bits: int = None,
         nonce: int = None,
@@ -22,6 +23,7 @@ class Block:
         txns: list = [],
     ) -> None:
         self.height = height
+        self.miner = miner
         self.version = version
         self.prev_block_hash = prev_block_hash
         self.timestamp = timestamp
@@ -35,6 +37,7 @@ class Block:
 
         string_to_hash = (
             str(self.height)
+            + str(self.miner)
             + str(self.version)
             + str(self.prev_block_hash)
             + str(self.timestamp)
@@ -53,6 +56,7 @@ class Block:
         header = {
             "height": self.height,
             "prev_block_hash": self.prev_block_hash,
+            "miner": self.miner,
             "id": self.id,
             "nonce": self.nonce,
             "version": self.version,
@@ -92,6 +96,7 @@ class Block:
             4, byteorder="little", signed=False
         )
         id_bytes = binascii.a2b_hex(self.id)
+        miner_bytes = str.encode(self.miner)
         prev_block_hash_bytes = binascii.a2b_hex(self.prev_block_hash)
         height_bytes = self.height.to_bytes(
             4, byteorder="little", signed=False
@@ -125,6 +130,7 @@ class Block:
             + id_bytes
             + prev_block_hash_bytes
             + height_bytes
+            + miner_bytes
             + timestamp_bytes
             + bits_bytes
             + nonce_bytes
@@ -142,16 +148,17 @@ class Block:
         self.height = int.from_bytes(
             block_serialized[72:76], byteorder="little"
         )
+        self.miner = block_serialized[76:110].decode("utf-8")
         self.timestamp = int.from_bytes(
-            block_serialized[76:80], byteorder="big"
+            block_serialized[110:114], byteorder="big"
         )
-        self.bits = block_serialized[80:85]
+        self.bits = block_serialized[114:119]
         self.nonce = int.from_bytes(
-            block_serialized[85:89], byteorder="little"
+            block_serialized[119:123], byteorder="little"
         )
 
         self.txns = []
-        block_transations = block_serialized[89:]
+        block_transations = block_serialized[123:]
 
         for i in range(0, len(block_transations), 179):
             txn = Transaction()
@@ -161,11 +168,8 @@ class Block:
 
     def is_valid_proof(self) -> bool:
         target = bits_to_target(self.bits)
-        if self.id.startswith("0000"):
-            print(f"FUNCION is_valid_proof <{self.bits}> <{target}>")
-            print(self.id)
+        if self.id.startswith("00000"):
             print(f"{int(self.id, 16)} <= {int(target, 16)}")
-            print(int(self.id, 16) <= int(target, 16))
         return int(self.id, 16) <= int(target, 16)
 
     def validate(self) -> bool:

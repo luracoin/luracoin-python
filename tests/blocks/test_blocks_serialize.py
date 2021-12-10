@@ -6,6 +6,7 @@ from luracoin.blocks import Block
 from luracoin.transactions import Transaction
 from tests.helpers import add_test_transactions
 from luracoin.config import Config
+from tests.constants import WALLET_1
 
 
 def test_block_serialize__with_one_transaction(blockchain):
@@ -21,6 +22,7 @@ def test_block_serialize__with_one_transaction(blockchain):
     block1 = Block(
         version=1,
         height=0,
+        miner=WALLET_1["address"],
         prev_block_hash="0" * 64,
         timestamp=1_623_168_442,
         bits=b"\1f\x00\xff\xff",
@@ -47,6 +49,7 @@ def test_block_serialize__with_multiple_transaction():
     block1 = Block(
         version=1,
         height=0,
+        miner=WALLET_1["address"],
         prev_block_hash="0" * 64,
         timestamp=1_623_168_442,
         bits=b"\1f\x00\xff\xff",
@@ -68,6 +71,7 @@ def test_block_serialize__with_multiple_transaction():
     block2 = Block(
         version=1,
         height=1,
+        miner=WALLET_1["address"],
         prev_block_hash=block1.id,
         timestamp=1_623_208_442,
         bits=b"\1f\x00\xff\xff",

@@ -8,6 +8,7 @@ from tests.helpers import add_test_transactions
 from luracoin.config import Config
 from luracoin.pow import proof_of_work
 from luracoin.chain import Chain
+from tests.constants import WALLET_1
 
 
 def test_block_save():
@@ -23,6 +24,7 @@ def test_block_save():
     block1 = Block(
         version=1,
         height=0,
+        miner=WALLET_1["address"],
         prev_block_hash="0" * 64,
         timestamp=1_623_168_442,
         bits=b"\x1d\x0f\xff\xff",
@@ -32,7 +34,33 @@ def test_block_save():
 
     print(block1.json())
 
+    coinbase_transaction_2 = Transaction(
+        chain=1,
+        nonce=2,
+        fee=0,
+        value=50000,
+        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
+    )
+
+    block2 = Block(
+        version=1,
+        height=1,
+        miner=WALLET_1["address"],
+        prev_block_hash=block1.id,
+        timestamp=1_623_168_442,
+        bits=b"\x1d\x0f\xff\xff",
+        nonce=12308683,
+        txns=[coinbase_transaction_2],
+    )
+
+    print(block2.json())
+
     chain = Chain()
+    assert chain.height == 0
     chain.add_block(block1)
+    assert chain.height == 0
+    chain.add_block(block2)
+    assert chain.height == 1
 
     assert False
