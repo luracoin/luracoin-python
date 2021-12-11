@@ -27,10 +27,18 @@ def test_full_blockchain():
         nonce=156369,
         txns=[],
     )
-    print(json.dumps(block1.json(), indent=4))
-
+    print("\nBlock 1 \n" + json.dumps(block1.json(), indent=4))
     chain.add_block(block1)
+    # Check chain Height is updated
     assert chain.height == 0
+    # Check block file number is updated
+    assert chain.get_block_file_number(0) == 0
+    # Check that the block file contains one block
+    assert len(chain.get_blocks_from_file(0)) == 1
+    # Check that the block retrieved from the files is the same
+    assert chain.get_block(0).id == block1.id
+    assert chain.get_block(0).serialize() == block1.serialize()
+    
     # TODO: Check miner balance
     # TODO: Check file content
     # TODO: Check stacking
@@ -57,10 +65,18 @@ def test_full_blockchain():
         nonce=4358788,
         txns=[transaction_1],
     )
-    print(json.dumps(block2.json(), indent=4))
+    print("\nBlock 2 \n" + json.dumps(block2.json(), indent=4))
 
     chain.add_block(block2)
+    # Check chain Height is updated
     assert chain.height == 1
+    # Check block file number is updated
+    assert chain.get_block_file_number(0) == 0
+    # Check that the block file contains two blocks
+    assert len(chain.get_blocks_from_file(0)) == 2
+    # Check that the block retrieved from the files is the same
+    assert chain.get_block(1).id == block2.id
+    assert chain.get_block(1).serialize() == block2.serialize()
     # TODO: Check miner balance
     # TODO: Check file content
     # TODO: Check stacking

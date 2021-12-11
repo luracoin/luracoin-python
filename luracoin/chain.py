@@ -107,7 +107,7 @@ class Chain:
             file_bytes = f.read()
             while file_bytes:
                 block_size = int.from_bytes(file_bytes[:4], byteorder="little", signed=False)
-                blocks.append(Block().deserialize(file_bytes[4:block_size]))
+                blocks.append(Block().deserialize(file_bytes[4:block_size + 4]))
                 file_bytes = file_bytes[4+block_size:]
 
         return blocks
@@ -162,17 +162,15 @@ class Chain:
         Get a block by height
         """
         block_file_number = self.get_block_file_number(height)
-        if not block_file_number:
+        if block_file_number is None:
             return None
 
-        block_file = f"{Config.BLOCKS_DIR}{blk_file_format(block_file_number)}"
+        blocks_in_file = self.get_blocks_from_file(block_file_number)
+        for block in blocks_in_file:
+            if block.height == height:
+                return block
 
-        with safer.open(block_file, "rb") as f:
-            f.seek(self.get_block_offset(height))
-            size = int.from_bytes(f.read(4), byteorder="little", signed=False)
-            block_data = f.read(size)
-
-        return Block.deserialize(block_data)
+        return None
 
     def validate_block(self, block) -> bool:
         """

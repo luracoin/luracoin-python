@@ -113,6 +113,7 @@ class Block:
         print(f"version_bytes: {version_bytes.hex()}")
         print(f"id_bytes: {id_bytes.hex()}")
         print(f"prev_block_hash_bytes: {prev_block_hash_bytes.hex()}")
+        print(f"miner_bytes: {miner_bytes.hex()}")
         print(f"height_bytes: {height_bytes.hex()}")
         print(f"timestamp_bytes: {timestamp_bytes.hex()}")
         print(f"bits_bytes: {bits_bytes.hex()}")
@@ -152,13 +153,13 @@ class Block:
         self.timestamp = int.from_bytes(
             block_serialized[110:114], byteorder="big"
         )
-        self.bits = block_serialized[114:119]
+        self.bits = block_serialized[114:118]
         self.nonce = int.from_bytes(
-            block_serialized[119:123], byteorder="little"
+            block_serialized[118:122], byteorder="little"
         )
 
         self.txns = []
-        block_transations = block_serialized[123:]
+        block_transations = block_serialized[122:]
 
         for i in range(0, len(block_transations), 179):
             txn = Transaction()
