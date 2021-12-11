@@ -25,7 +25,7 @@ def test_block_serialize__with_one_transaction(blockchain):
         miner=WALLET_1["address"],
         prev_block_hash="0" * 64,
         timestamp=1_623_168_442,
-        bits=b"\1f\x00\xff\xff",
+        bits=b"\x1f\x00\xff\xff",
         nonce=0,
         txns=[coinbase_transacion],
     )
@@ -52,7 +52,7 @@ def test_block_serialize__with_multiple_transaction():
         miner=WALLET_1["address"],
         prev_block_hash="0" * 64,
         timestamp=1_623_168_442,
-        bits=b"\1f\x00\xff\xff",
+        bits=b"\x1f\x00\xff\xff",
         nonce=0,
         txns=[coinbase_transaction_1],
     )
@@ -74,7 +74,7 @@ def test_block_serialize__with_multiple_transaction():
         miner=WALLET_1["address"],
         prev_block_hash=block1.id,
         timestamp=1_623_208_442,
-        bits=b"\1f\x00\xff\xff",
+        bits=b"\x1f\x00\xff\xff",
         nonce=0,
         txns=[coinbase_transaction_2, *transactions],
     )
