@@ -3,6 +3,7 @@ import os
 import rocksdb
 from luracoin.config import Config
 from luracoin.blocks import Block
+from luracoin.helpers import mining_reward
 import safer
 
 
@@ -151,7 +152,11 @@ class Chain:
         print(self.get_blocks_from_file(0))
         self.set_height(block.height)
         self.set_block_file_number(block.height, file_number)
-        # TODO: Update current block file name
+
+        miner_balance = self.get_account(block.miner)
+        miner_reward = mining_reward(block.height)
+        print(f"Miner reward: {miner_reward}")
+        
         # TODO: Update balances
         # TODO: Update stacking
         # TODO: Update difficulty
@@ -186,7 +191,6 @@ class Chain:
             return False
 
         return True
-        
 
 
 def open_database(database_name: str) -> rocksdb.DB:

@@ -126,8 +126,7 @@ class Block:
             transaction_bytes += txn.serialize()
 
         return (
-            Config.MAGIC_BYTES
-            + version_bytes
+            version_bytes
             + id_bytes
             + prev_block_hash_bytes
             + height_bytes
@@ -139,27 +138,24 @@ class Block:
         )
 
     def deserialize(self, block_serialized: bytes) -> "Block":
-        if block_serialized[:4] != Config.MAGIC_BYTES:
-            raise BlockNotValidError("Magic bytes are invalid")
-
         self.version = int.from_bytes(
-            block_serialized[4:8], byteorder="little"
+            block_serialized[0:4], byteorder="little"
         )
-        self.prev_block_hash = block_serialized[40:72].hex()
+        self.prev_block_hash = block_serialized[36:68].hex()
         self.height = int.from_bytes(
-            block_serialized[72:76], byteorder="little"
+            block_serialized[68:72], byteorder="little"
         )
-        self.miner = block_serialized[76:110].decode("utf-8")
+        self.miner = block_serialized[72:106].decode("utf-8")
         self.timestamp = int.from_bytes(
-            block_serialized[110:114], byteorder="big"
+            block_serialized[106:110], byteorder="big"
         )
-        self.bits = block_serialized[114:118]
+        self.bits = block_serialized[110:114]
         self.nonce = int.from_bytes(
-            block_serialized[118:122], byteorder="little"
+            block_serialized[114:118], byteorder="little"
         )
 
         self.txns = []
-        block_transations = block_serialized[122:]
+        block_transations = block_serialized[118:]
 
         for i in range(0, len(block_transations), 179):
             txn = Transaction()

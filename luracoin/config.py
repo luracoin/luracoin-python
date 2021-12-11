@@ -61,6 +61,7 @@ class Config:
 
     COINS_TO_FORGE = 100_000 * LURASHIS_PER_COIN
     BLOCK_REWARD = 50 * LURASHIS_PER_COIN
+    HALVING_BLOCKS = 172_800 * 1.5  # Every 1.5 years aprox
 
     # REDIS
     #

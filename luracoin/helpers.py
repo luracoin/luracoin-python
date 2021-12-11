@@ -39,8 +39,9 @@ def sha256d(s: Union[str, bytes]) -> str:
     return hashlib.sha256(hashlib.sha256(s).digest()).hexdigest()
 
 
-def mining_reward() -> int:
-    return 50
+def mining_reward(height) -> int:
+    halving = int(height / Config.HALVING_BLOCKS) + 1
+    return int(Config.BLOCK_REWARD / halving)
 
 
 def little_endian_to_int(little_endian_hex: str) -> int:

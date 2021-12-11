@@ -1,6 +1,6 @@
 import pytest
 from luracoin.config import Config
-from luracoin.helpers import bits_to_target, is_hex, bytes_to_signing_key
+from luracoin.helpers import bits_to_target, is_hex, bytes_to_signing_key, mining_reward
 
 
 def test_bytes_to_signing_key(blockchain):
@@ -97,3 +97,20 @@ def test_bits_to_target() -> None:
     assert bits_to_target(b"\x1f\x00\xff\xff") == (
         "0000ffff00000000000000000000000000000000000000000000000000000000"
     )
+
+
+
+def test_mining_reward():
+    assert mining_reward(height=0) == 5000000000
+    assert mining_reward(height=1000) == 5000000000
+    assert mining_reward(height=259200) == 2500000000
+    assert mining_reward(height=300_000) == 2500000000
+    assert mining_reward(height=800_000) == 1250000000
+    assert mining_reward(height=900_000) == 1250000000
+    assert mining_reward(height=1_000_000) == 1250000000
+    assert mining_reward(height=1_500_000) == 833333333
+    assert mining_reward(height=2_000_000) == 625000000
+    assert mining_reward(height=2_500_000) == 500000000
+    assert mining_reward(height=3_000_000) == 416666666
+    assert mining_reward(height=6_000_000) == 208333333
+    assert mining_reward(height=12_000_000) == 106382978

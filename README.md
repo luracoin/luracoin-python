@@ -17,10 +17,11 @@ It's easy and fun. We don't need performance yet, we need more contributors. I w
 
 #### Diferences with Bitcoin 
 - 2 more bytes on the header (Nonce).  
-- Block time every 5 min instead of 10 min.  
-- 8MB block size limit instead of 1MB.
-- Supply of 21 billion coins instead of 21 million.
+- Block time every 3 min instead of 10 min.  
+- Progressive block size limit instead of 1MB.
+- No max supply, there will be a constant tail emission
 - Account Model instead of UTXO
+- Each transaction has exactly 179 bytes
 
 
 ## Install
@@ -61,38 +62,42 @@ Response:
 }
 ```
 
-## LevelDB 
+## Blocks
 
-#### Block keys:
+Each block header has 118 bytes.
 
-```
-'l' -> Actual file number (eg. blk00045.dat)  
-'b' -> Current block height
-'c' -> Validation process
+- version (4 bytes)
+- id (32 bytes)
+- miner (34 bytes)
+- prev_block_hash (32 bytes)
+- height (4 bytes)
+- timestamp (4 bytes)
+- bits (4 bytes)
+- nonce ( 4 bytes)
+- transaction list (each transaction 179 bytes)
 
-'b' + 32-byte block hash -> block index record. Each record stores:  
-	The block header.  
-	The height.  
-	The number of transactions.  
-	To what extent this block is validated.  
-	In which file, and where in that file, the block data is stored.
 
-'b' + 6-byte block height -> 
-	6-byte File name in which the block data is stored.
-	32-byte block hash
-```
-  
 
-#### Chainstate keys:
+## RocksDB 
+
+#### Chainstate:
 
 ```
-'c' + 32-byte transaction id -> Outputs. Each record stores:  
-    TX Version (4 bytes).
-    Coinbase (1 byte).
-    Block height (4 bytes).
-    Num Outputs (VarInt).
-    Outputs:
-        Output Length (VarInt).
-        Output.
-
+'file_number' -> Actual file number (eg. 5 that will turn into blk0004.dat)  
+'height' -> Current block height
+'validation' -> Validation process
+'b' + 32-byte block hash -> block height record.
+'t' + 32-byte transaction id -> Each record stores:
+    > Block height (4 bytes)
+    > Transaction position inside the block (2 bytes)
+'a' + 34-byte address ->
+    > Balance
+    > Committed
 ```
+
+#### Blocks:
+```
+32-byte block hash -> Each record stores:
+    > Size of the block (4 bytes)
+    > Serialized Block
+```  
