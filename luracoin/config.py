@@ -16,6 +16,8 @@ class Config:
     # have their own magic bytes.
     MAGIC_BYTES = b"\xbaw\xd8\x9f"
 
+    STARTING_DIFFICULTY = b"\x1d\xff\xff\xff"
+
     MAX_TX_PER_BLOCK = 65535
 
     TRANSACTION_LENGTH = 179

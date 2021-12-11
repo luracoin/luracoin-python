@@ -8,11 +8,6 @@ from luracoin.config import Config
 from luracoin.exceptions import BlockNotValidError
 from luracoin.helpers import sha256d, bits_to_target
 from luracoin.transactions import Transaction
-from luracoin.chain import (
-    set_value,
-    get_value,
-    get_current_blk_file,
-)
 
 
 class Block:
@@ -20,6 +15,7 @@ class Block:
         self,
         version: int = None,
         height: int = None,
+        miner: str = None,
         prev_block_hash: str = None,
         bits: int = None,
         nonce: int = None,
@@ -27,6 +23,7 @@ class Block:
         txns: list = [],
     ) -> None:
         self.height = height
+        self.miner = miner
         self.version = version
         self.prev_block_hash = prev_block_hash
         self.timestamp = timestamp
@@ -40,6 +37,7 @@ class Block:
 
         string_to_hash = (
             str(self.height)
+            + str(self.miner)
             + str(self.version)
             + str(self.prev_block_hash)
             + str(self.timestamp)
@@ -58,6 +56,7 @@ class Block:
         header = {
             "height": self.height,
             "prev_block_hash": self.prev_block_hash,
+            "miner": self.miner,
             "id": self.id,
             "nonce": self.nonce,
             "version": self.version,
@@ -97,6 +96,7 @@ class Block:
             4, byteorder="little", signed=False
         )
         id_bytes = binascii.a2b_hex(self.id)
+        miner_bytes = str.encode(self.miner)
         prev_block_hash_bytes = binascii.a2b_hex(self.prev_block_hash)
         height_bytes = self.height.to_bytes(
             4, byteorder="little", signed=False
@@ -113,6 +113,7 @@ class Block:
         print(f"version_bytes: {version_bytes.hex()}")
         print(f"id_bytes: {id_bytes.hex()}")
         print(f"prev_block_hash_bytes: {prev_block_hash_bytes.hex()}")
+        print(f"miner_bytes: {miner_bytes.hex()}")
         print(f"height_bytes: {height_bytes.hex()}")
         print(f"timestamp_bytes: {timestamp_bytes.hex()}")
         print(f"bits_bytes: {bits_bytes.hex()}")
@@ -130,6 +131,7 @@ class Block:
             + id_bytes
             + prev_block_hash_bytes
             + height_bytes
+            + miner_bytes
             + timestamp_bytes
             + bits_bytes
             + nonce_bytes
@@ -147,18 +149,17 @@ class Block:
         self.height = int.from_bytes(
             block_serialized[72:76], byteorder="little"
         )
+        self.miner = block_serialized[76:110].decode("utf-8")
         self.timestamp = int.from_bytes(
-            block_serialized[76:80], byteorder="big"
+            block_serialized[110:114], byteorder="big"
         )
-        self.bits = block_serialized[80:85]
+        self.bits = block_serialized[114:118]
         self.nonce = int.from_bytes(
-            block_serialized[85:89], byteorder="little"
+            block_serialized[118:122], byteorder="little"
         )
 
         self.txns = []
-        block_transations = block_serialized[89:]
-
-        print(f"block_transations: {block_transations.hex()}")
+        block_transations = block_serialized[122:]
 
         for i in range(0, len(block_transations), 179):
             txn = Transaction()
@@ -168,11 +169,8 @@ class Block:
 
     def is_valid_proof(self) -> bool:
         target = bits_to_target(self.bits)
-        if self.id.startswith("0000"):
-            print(f"FUNCION is_valid_proof <{self.bits}> <{target}>")
-            print(self.id)
+        if self.id.startswith("00000"):
             print(f"{int(self.id, 16)} <= {int(target, 16)}")
-            print(int(self.id, 16) <= int(target, 16))
         return int(self.id, 16) <= int(target, 16)
 
     def validate(self) -> bool:
@@ -186,22 +184,8 @@ class Block:
         6) [ ] Timestamp
         7) [X] Block Height
         """
-
-        # Difficulty Check
-
-        current_height = get_value(
-            database_name=Config.DATABASE_CHAINSTATE.encode(),
-            key="height".encode(),
-        )
-        if not current_height:
-            current_height = -1
-
         if not self.is_valid_proof():
             print("Proof of work is invalid")
-            return False
-
-        if self.height != current_height + 1:
-            print("Block height is invalid")
             return False
 
         for txn in self.txns:
@@ -210,26 +194,6 @@ class Block:
                 return False
 
         return True
-
-    def save(self) -> None:
-        """
-        if not self.validate():
-            raise BlockNotValidError("Block is not valid")
-        """
-
-        print("Save")
-        current_block_file = f"{Config.BLOCKS_DIR}{get_current_blk_file()}"
-        print(current_block_file)
-
-        a = b""
-        for _ in range(10000):
-            a += self.serialize()
-
-        with open(current_block_file, "wb") as w:
-            w.write(a)
-
-        # Update height
-        # Update current block file name
 
     def create(self, propagate: bool = True) -> None:
         pass

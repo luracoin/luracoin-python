@@ -2,7 +2,7 @@
 Luracoin client
 
 Usage:
-  client.py generateWallet [--save]
+  client.py generateWallet
   client.py mine
 
 Options:
@@ -21,7 +21,8 @@ from luracoin.wallet import create_wallet, generate_wallet
 
 def main(args):  # type: ignore
     if args["generateWallet"]:
-        generateWallet(save=args["--save"])
+        #generateWallet(save=args["--save"])
+        generateWallet(save=False)
     elif args["mine"]:
         mine()
 
@@ -43,4 +44,5 @@ def generateWallet(save):  # type: ignore
 
 
 if __name__ == "__main__":
-    main(docopt(__doc__, version="luracoin client 0.1"))  # type: ignore
+    #main(docopt(__doc__, version="luracoin client 0.1"))  # type: ignore
+    generateWallet(save=False)
