@@ -50,15 +50,16 @@ python -m luracoin.client generateAddress
 ```
 
 Response:
-```
+```json
 {
-    "input": "78D5A1F3F42F7DDE5830E57A2FAF233FF3E2B714B8758997F3E20C9A5396968F",
-    "mnemonic": "juice public language tribe water upset general bronze kick latin silver lend dilemma fortune fancy attitude maze sauce weasel bomb pioneer slender focus tooth",
-    "seed": "adbbd00699b49ca4cc0103baab21e4c7991a3a3edc23078568c7cde8d1f4103c1727644f7f4e45e5277948485e74ae32048ea37db07f340cf0e6e24314cd02b9",
-    "xprv": "xprv9s21ZrQH143K2ckdHwDZcdDqzW8ayRXVGxHGfQCfUKeeJKw26qV8kU7LsEcLomFjnXCBzQVEsBvMxVYQ1yjBz7S2QQ4DCXSYj6LFs7cc366",
-    "private_key": "0686758824778a0f46651f4a63b149f6704d003852b0fc1bc04c3ba71d6866f7",
-    "public_key": "03ca8b1d828b4147ee31b181d5ae3d28f49c0f611faf8bd5d83eb0425069cdea93",
-    "address": "1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP"
+    "input": "105B4F699175E425688714FC880CF9069894A3D5D7EBB87CC340EDAB9B14E979",
+    "mnemonic": "aware surprise surprise carry furnace bargain pear tip wish document dinner artwork matter faint firm word reveal toward south swap rifle media planet capital",
+    "seed": "b3bdaf77cf6e3cc5e2e5be9d2e3d8747f97466ca36906524caa0d702c8cc62f2cc13afc84aabeb0cb91a63302bdc8227b1a8d7358bde66b381c411401a5e8a85",
+    "xprv": "xprv9s21ZrQH143K4J9bUMHy8UEQBY8CGfyPj4pzK26SDtX1qe9z7NWAhwyAEdHpJxYKjJJhpB1a3edg8vjvjEYvg8q5VVzB6q8UZ9Jrz97RegT",
+    "private_key": "b5d1e2143c234a9949066ee5199a79192e78f4127893dc00eefb28a0b8a64078",
+    "public_key": "031171ab965a7ccd1ee72bf1d95251ede9bb07049e1df91ef4f6b7349c2bf4fe3e",
+    "verifying_key": "1171ab965a7ccd1ee72bf1d95251ede9bb07049e1df91ef4f6b7349c2bf4fe3e5098089791c7c46a858f8a362f9cba7d75a3253340462e7e35b1320cdab3957f",
+    "address": "LM6jpRVE2TYoZKc1onms6d6N9rXh16r38N"
 }
 ```
 
