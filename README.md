@@ -97,7 +97,7 @@ Each block header has 118 bytes.
 
 #### Blocks:
 ```
-32-byte block hash -> Each record stores:
+4-byte block height -> Each record stores:
     > Size of the block (4 bytes)
     > Serialized Block
 ```  
