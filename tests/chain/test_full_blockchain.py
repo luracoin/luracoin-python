@@ -15,7 +15,7 @@ from tests.constants import WALLET_1
 def test_full_blockchain():
     START_TIMESTAMP = 1639159886
     chain = Chain()
-    assert chain.height == 0
+    assert chain.last_height == 0
 
     block1 = Block(
         version=1,
@@ -28,16 +28,16 @@ def test_full_blockchain():
         txns=[],
     )
     print("\nBlock 1 \n" + json.dumps(block1.json(), indent=4))
-    chain.add_block(block1)
+    block1.save()
     # Check chain Height is updated
-    assert chain.height == 0
+    assert chain.last_height == 0
     # Check block file number is updated
     assert chain.get_block_file_number(0) == 0
     # Check that the block file contains one block
-    assert len(chain.get_blocks_from_file(0)) == 1
+    assert len(Block.get_blocks_from_file(0)) == 1
     # Check that the block retrieved from the files is the same
-    assert chain.get_block(0).id == block1.id
-    assert chain.get_block(0).serialize() == block1.serialize()
+    assert Block.get(0).id == block1.id
+    assert Block.get(0).serialize() == block1.serialize()
     
     # TODO: Check miner balance
     # TODO: Check file content
@@ -67,16 +67,16 @@ def test_full_blockchain():
     )
     print("\nBlock 2 \n" + json.dumps(block2.json(), indent=4))
 
-    chain.add_block(block2)
+    block2.save()
     # Check chain Height is updated
-    assert chain.height == 1
+    assert chain.last_height == 1
     # Check block file number is updated
     assert chain.get_block_file_number(0) == 0
     # Check that the block file contains two blocks
-    assert len(chain.get_blocks_from_file(0)) == 2
+    assert len(Block.get_blocks_from_file(0)) == 2
     # Check that the block retrieved from the files is the same
-    assert chain.get_block(1).id == block2.id
-    assert chain.get_block(1).serialize() == block2.serialize()
+    assert Block.get(1).id == block2.id
+    assert Block.get(1).serialize() == block2.serialize()
     # TODO: Check miner balance
     # TODO: Check file content
     # TODO: Check stacking

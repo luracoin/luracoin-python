@@ -57,10 +57,10 @@ def test_block_save():
     print(block2.json())
 
     chain = Chain()
-    assert chain.height == 0
-    chain.add_block(block1)
-    assert chain.height == 0
-    chain.add_block(block2)
-    assert chain.height == 1
+    assert chain.last_height == 0
+    block1.save()
+    assert chain.last_height == 0
+    block2.save()
+    assert chain.last_height == 1
 
     assert False

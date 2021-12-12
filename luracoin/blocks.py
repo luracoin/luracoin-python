@@ -1,3 +1,4 @@
+import safer
 import json
 import redis
 import binascii
@@ -6,11 +7,11 @@ import rocksdb
 from typing import Any
 from luracoin.config import Config
 from luracoin.exceptions import BlockNotValidError
-from luracoin.helpers import sha256d, bits_to_target
+from luracoin.helpers import sha256d, bits_to_target, mining_reward
 from luracoin.transactions import Transaction
+from luracoin.chain import Chain, blk_file_format, get_current_blk_file
 
-
-class Block:
+class Block(Chain):
     def __init__(
         self,
         version: int = None,
@@ -190,6 +191,75 @@ class Block:
                 return False
 
         return True
+
+    @classmethod
+    def get_blocks_from_file(cls, fileNumber):
+        """
+        Get all blocks from a file
+        """
+        obj = cls.__new__(cls)
+        block_file = f"{Config.BLOCKS_DIR}blk{blk_file_format(fileNumber)}.dat"
+        blocks = []
+
+        with safer.open(block_file, "rb") as f:
+            file_bytes = f.read()
+            while file_bytes:
+                block_size = int.from_bytes(file_bytes[:4], byteorder="little", signed=False)
+                blocks.append(obj.deserialize(file_bytes[4:block_size + 4]))
+                file_bytes = file_bytes[4+block_size:]
+
+        return blocks
+
+    @classmethod
+    def last(cls):
+        """
+        Return the last block
+        """
+        obj = cls.__new__(cls)
+        return obj.get_block(obj.last_height)
+
+    @classmethod
+    def get(cls, height):
+        """
+        Get a block by height
+        """
+        obj = cls.__new__(cls)
+        block_file_number = obj.get_block_file_number(height)
+        if block_file_number is None:
+            return None
+
+        blocks_in_file = obj.get_blocks_from_file(block_file_number)
+        for block in blocks_in_file:
+            if block.height == height:
+                return block
+
+        return None
+
+
+    def save(self) -> None:
+        """
+        if not self.validate():
+            raise BlockNotValidError("Block is not valid")
+        """
+        file_number = self.current_file_number
+        current_block_file = f"{Config.BLOCKS_DIR}{get_current_blk_file(self.current_file_number)}"
+
+        with safer.open(current_block_file, "ab") as w:
+            serialized_block = self.serialize()
+            block_size = len(serialized_block)
+            w.write(block_size.to_bytes(4, byteorder="little", signed=False) + serialized_block)
+
+        print(Block.get_blocks_from_file(0))
+        self.set_height(self.height)
+        self.set_block_file_number(self.height, file_number)
+
+        miner_balance = self.get_account(self.miner)
+        miner_reward = mining_reward(self.height)
+        print(f"Miner reward: {miner_reward}")
+        
+        # TODO: Update balances
+        # TODO: Update stacking
+        # TODO: Update difficulty
 
     def create(self, propagate: bool = True) -> None:
         pass

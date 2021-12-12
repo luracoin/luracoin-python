@@ -122,69 +122,29 @@ set_value(
 print(get_value(Config.DATABASE_ACCOUNTS, "marcos".encode()))
 """
 
-import binascii
-import json
-from binascii import unhexlify
-from tests.helpers import add_test_transactions
-from luracoin.helpers import bits_to_target
-from luracoin.blocks import Block
-from luracoin.transactions import Transaction
-from tests.helpers import add_test_transactions
-from luracoin.config import Config
-from luracoin.pow import proof_of_work
-from luracoin.chain import Chain
-from tests.constants import WALLET_1
+LURASHIS_PER_COIN = int(100e6)
+BASE_REWARD = 50 * LURASHIS_PER_COIN
+HALVING_BLOCKS = 172_800 * 1.5
 
-START_TIMESTAMP = 1639159886
-chain = Chain()
+def mining_reward(height) -> int:
+    halving = int(height / HALVING_BLOCKS) + 1
+    return int(BASE_REWARD / halving)
 
-block1 = Block(
-    version=1,
-    height=0,
-    prev_block_hash="0" * 64,
-    miner=WALLET_1["address"],
-    timestamp=START_TIMESTAMP,
-    bits=Config.STARTING_DIFFICULTY,
-    nonce=156369,
-    txns=[],
-)
-nonce = proof_of_work(block1)
-print("=====> POW: " + str(nonce))
 
-print(json.dumps(block1.json(), indent=4))
+cont = 0
+total = 0
+reward = mining_reward(cont)
+while reward > 0:
+    cont += 1
+    reward = mining_reward(cont)
+    total += reward
 
-# Transaction to stack 15 Luracoins
-transaction_1 = Transaction(
-    chain=1,
-    nonce=1,
-    fee=0,
-    value=Config.LURASHIS_PER_COIN * 15,
-    to_address=Config.STAKING_ADDRESS,
-)
+    print(f"Height: {cont}\tYear: {int(cont/172800)}\tSupply: {total / LURASHIS_PER_COIN}\tReward: {int(reward) / LURASHIS_PER_COIN}")
 
-transaction_1.sign(unhexlify(WALLET_1["private_key"]))
-assert transaction_1.validate() == True
+    if reward <= 1_000 :
+        break
 
-block2 = Block(
-    version=1,
-    height=1,
-    prev_block_hash=block1.id,
-    miner=WALLET_1["address"],
-    timestamp=START_TIMESTAMP + (3*60),  # 3 minutes
-    bits=Config.STARTING_DIFFICULTY,
-    nonce=4358788,
-    txns=[transaction_1],
-)
-
-nonce = proof_of_work(block2)
-print("=====> POW: " + str(nonce))
-
-print(json.dumps(block2.json(), indent=4))
-
-assert chain.height == 0
-chain.add_block(block1)
-assert chain.height == 0
-chain.add_block(block2)
-assert chain.height == 1
-
-assert False
+print("====================")
+print(f"Total supply: {total}")
+print(f"Total supply: {total / LURASHIS_PER_COIN}")
+print(f"Total blocks: {cont}")

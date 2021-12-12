@@ -82,7 +82,6 @@ Each block header has 118 bytes.
 ## RocksDB 
 
 #### Chainstate:
-
 ```
 'file_number' -> Actual file number (eg. 5 that will turn into blk0004.dat)  
 'height' -> Current block height

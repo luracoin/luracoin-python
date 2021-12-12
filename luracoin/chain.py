@@ -2,14 +2,13 @@ import json
 import os
 import rocksdb
 from luracoin.config import Config
-from luracoin.blocks import Block
 from luracoin.helpers import mining_reward
 import safer
 
 
-class Chain:
+class Chain(object):
     @property
-    def height(self):
+    def last_height(self):
         """
         Return the current height of the chain, the tip of the chain
         """
@@ -55,14 +54,6 @@ class Chain:
 
         return file_number
 
-    # TODO: WIP
-    @property
-    def last_block(self):
-        """
-        Return the last block
-        """
-        return self.get_block(self.height)
-
     def set_current_file_number(self, file_number):
         """
         Set the current file number
@@ -97,22 +88,6 @@ class Chain:
             value=file_number.to_bytes(4, byteorder="little", signed=False),
         )
 
-    def get_blocks_from_file(self, fileNumber):
-        """
-        Get all blocks from a file
-        """
-        block_file = f"{Config.BLOCKS_DIR}blk{blk_file_format(fileNumber)}.dat"
-        blocks = []
-
-        with safer.open(block_file, "rb") as f:
-            file_bytes = f.read()
-            while file_bytes:
-                block_size = int.from_bytes(file_bytes[:4], byteorder="little", signed=False)
-                blocks.append(Block().deserialize(file_bytes[4:block_size + 4]))
-                file_bytes = file_bytes[4+block_size:]
-
-        return blocks
-
     def get_account(self, address):
         """
         Get the account for a given address
@@ -136,61 +111,6 @@ class Chain:
             value=json.dumps(data).encode(),
         )
 
-    def add_block(self, block) -> None:
-        """
-        if not self.validate():
-            raise BlockNotValidError("Block is not valid")
-        """
-        file_number = self.current_file_number
-        current_block_file = f"{Config.BLOCKS_DIR}{get_current_blk_file()}"
-
-        with safer.open(current_block_file, "ab") as w:
-            serialized_block = block.serialize()
-            block_size = len(serialized_block)
-            w.write(block_size.to_bytes(4, byteorder="little", signed=False) + serialized_block)
-
-        print(self.get_blocks_from_file(0))
-        self.set_height(block.height)
-        self.set_block_file_number(block.height, file_number)
-
-        miner_balance = self.get_account(block.miner)
-        miner_reward = mining_reward(block.height)
-        print(f"Miner reward: {miner_reward}")
-        
-        # TODO: Update balances
-        # TODO: Update stacking
-        # TODO: Update difficulty
-
-    # TODO: WIP
-    def get_block(self, height):
-        """
-        Get a block by height
-        """
-        block_file_number = self.get_block_file_number(height)
-        if block_file_number is None:
-            return None
-
-        blocks_in_file = self.get_blocks_from_file(block_file_number)
-        for block in blocks_in_file:
-            if block.height == height:
-                return block
-
-        return None
-
-    def validate_block(self, block) -> bool:
-        """
-        Validate a block
-        """
-        if not block.validate():
-            return False
-
-        if block.height != self.height + 1:
-            return False
-
-        if block.previous_hash != self.get_block_hash(self.height):
-            return False
-
-        return True
 
 
 def open_database(database_name: str) -> rocksdb.DB:
@@ -235,11 +155,11 @@ def max_block_size(current_height: int) -> int:
     return Config.MAX_BLOCK_SIZE
 
 
-def get_current_blk_file() -> str:
+def get_current_blk_file(current_file_number) -> str:
     """
     Returns the current blk file name with file format.
     """
-    return get_current_file_name(blk_file_format(Chain().current_file_number))
+    return get_current_file_name(blk_file_format(current_file_number))
 
 
 def get_current_file_name(file_number: str) -> str:

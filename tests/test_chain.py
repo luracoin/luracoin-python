@@ -16,13 +16,13 @@ def test_next_blk_file() -> None:
 
 def test_chain_height():
     chain = Chain()
-    assert chain.height == 0
-    chain.set_height(chain.height + 1)
-    assert chain.height == 1
-    chain.set_height(chain.height + 1)
-    assert chain.height == 2
+    assert chain.last_height == 0
+    chain.set_height(chain.last_height + 1)
+    assert chain.last_height == 1
+    chain.set_height(chain.last_height + 1)
+    assert chain.last_height == 2
     chain.set_height(9999999)
-    assert chain.height == 9999999
+    assert chain.last_height == 9999999
 
 
 def test_chain_current_file_number() -> None:
@@ -76,8 +76,8 @@ def test_chain_current_file_number_increase_when_file_surpases_the_max_size_allo
     chain = Chain()
     Config.MAX_FILE_SIZE = 1000  # Override the max file size for the test
 
-    current_file = get_current_blk_file()
     current_file_number = chain.current_file_number
+    current_file = get_current_blk_file(current_file_number)
 
     assert current_file_number == 0
 
