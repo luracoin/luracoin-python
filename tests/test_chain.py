@@ -16,13 +16,13 @@ def test_next_blk_file() -> None:
 
 def test_chain_height():
     chain = Chain()
-    assert chain.last_height == 0
-    chain.set_height(chain.last_height + 1)
-    assert chain.last_height == 1
-    chain.set_height(chain.last_height + 1)
-    assert chain.last_height == 2
-    chain.set_height(9999999)
-    assert chain.last_height == 9999999
+    assert chain.tip == 0
+    chain.set_tip(chain.tip + 1)
+    assert chain.tip == 1
+    chain.set_tip(chain.tip + 1)
+    assert chain.tip == 2
+    chain.set_tip(9999999)
+    assert chain.tip == 9999999
 
 
 def test_chain_current_file_number() -> None:

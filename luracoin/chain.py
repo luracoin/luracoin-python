@@ -8,7 +8,7 @@ import safer
 
 class Chain(object):
     @property
-    def last_height(self):
+    def tip(self):
         """
         Return the current height of the chain, the tip of the chain
         """
@@ -21,7 +21,7 @@ class Chain(object):
 
         return int.from_bytes(current_height, byteorder="little", signed=False)
 
-    def set_height(self, height):
+    def set_tip(self, height):
         """
         Set the current height, the tip of the chain
         """

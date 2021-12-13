@@ -216,7 +216,7 @@ class Block(Chain):
         Return the last block
         """
         obj = cls.__new__(cls)
-        return obj.get_block(obj.last_height)
+        return obj.get_block(obj.tip)
 
     @classmethod
     def get(cls, height):
@@ -250,7 +250,7 @@ class Block(Chain):
             w.write(block_size.to_bytes(4, byteorder="little", signed=False) + serialized_block)
 
         print(Block.get_blocks_from_file(0))
-        self.set_height(self.height)
+        self.set_tip(self.height)
         self.set_block_file_number(self.height, file_number)
 
         miner_balance = self.get_account(self.miner)

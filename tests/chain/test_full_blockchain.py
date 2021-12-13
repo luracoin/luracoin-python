@@ -15,7 +15,7 @@ from tests.constants import WALLET_1
 def test_full_blockchain():
     START_TIMESTAMP = 1639159886
     chain = Chain()
-    assert chain.last_height == 0
+    assert chain.tip == 0
 
     block1 = Block(
         version=1,
@@ -30,7 +30,7 @@ def test_full_blockchain():
     print("\nBlock 1 \n" + json.dumps(block1.json(), indent=4))
     block1.save()
     # Check chain Height is updated
-    assert chain.last_height == 0
+    assert chain.tip == 0
     # Check block file number is updated
     assert chain.get_block_file_number(0) == 0
     # Check that the block file contains one block
@@ -69,7 +69,7 @@ def test_full_blockchain():
 
     block2.save()
     # Check chain Height is updated
-    assert chain.last_height == 1
+    assert chain.tip == 1
     # Check block file number is updated
     assert chain.get_block_file_number(0) == 0
     # Check that the block file contains two blocks
