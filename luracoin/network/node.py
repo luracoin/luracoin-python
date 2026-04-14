@@ -58,6 +58,7 @@ class Node:
         self.running = False
         self._server = None
         self.known_invs: set = set()  # Set of seen inv hashes to avoid re-broadcast
+        self.on_new_block = None  # Callback: called when a valid block is received from a peer
 
     @property
     def connected_addresses(self) -> set:
@@ -216,7 +217,10 @@ class Node:
 
     def _handle_block(self, payload: bytes) -> bool:
         """Process a received block."""
-        return self.block_sync.handle_block(payload)
+        accepted = self.block_sync.handle_block(payload)
+        if accepted and self.on_new_block:
+            self.on_new_block()
+        return accepted
 
     def _handle_tx(self, payload: bytes) -> bool:
         """Process a received transaction."""
