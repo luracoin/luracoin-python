@@ -66,6 +66,12 @@ class Config:
     BLOCK_TIME = 180  # 3 minutes in seconds
     DIFFICULTY_ADJUSTMENT_INTERVAL = 480  # ~1 day with 3 min blocks
 
+    # P2P Network
+    SEED_NODES = [("127.0.0.1", 9999)]
+    MAX_PEERS = 8
+    PING_INTERVAL = 60  # seconds
+    SYNC_BATCH_SIZE = 50
+
     # REDIS
     #
     # Redis configuration and credentials
