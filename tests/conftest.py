@@ -9,6 +9,7 @@ from luracoin.blocks import Block
 from luracoin.config import Config
 from luracoin.transactions import Transaction
 from luracoin.pow import proof_of_work
+from luracoin.chain import close_databases
 
 
 def init_blockchain():
@@ -20,6 +21,7 @@ def init_blockchain():
         nonce=8763,
         fee=100,
         value=50000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=None,
     )
@@ -29,7 +31,7 @@ def init_blockchain():
         height=0,
         prev_block_hash="0" * 64,
         timestamp=1_623_168_442,
-        bits=b"\1f\x00\xff\xff",
+        bits=b"\x1f\x00\xff\xff",
         nonce=0,
         txns=[coinbase_transacion],
     )
@@ -53,18 +55,20 @@ def blockchain() -> Generator:
     if os.path.exists(folder):
         shutil.rmtree(folder)
 
-    print("clean tests")
-    redis_client = redis.Redis(
-        host=Config.REDIS_HOST, port=Config.REDIS_PORT, db=Config.REDIS_DB
-    )
-
-    redis_client.flushdb()
+    try:
+        redis_client = redis.Redis(
+            host=Config.REDIS_HOST, port=Config.REDIS_PORT, db=Config.REDIS_DB
+        )
+        redis_client.flushdb()
+    except redis.exceptions.ConnectionError:
+        pass
 
 
 @pytest.fixture(autouse=True)
 def run_before_and_after_tests(tmpdir):
     print("Init tests")
-    shutil.rmtree(Config.DATA_TEST_DIR)
+    if os.path.exists(Config.DATA_TEST_DIR):
+        shutil.rmtree(Config.DATA_TEST_DIR)
 
     os.makedirs(Config.DATA_TEST_DIR)
     os.makedirs(Config.BLOCKS_TEST_DIR)
@@ -76,8 +80,8 @@ def run_before_and_after_tests(tmpdir):
 
     yield  # this is where the testing happens
 
-    # Teardown : fill with any logic you want
-    print("clean tests")
+    # Teardown
+    close_databases()
     """
     redis_client = redis.Redis(
         host=Config.REDIS_HOST,

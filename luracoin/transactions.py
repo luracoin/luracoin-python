@@ -24,6 +24,7 @@ class Transaction:
         nonce: int = 0,
         fee: int = 0,
         value: int = 0,
+        from_address: str = None,
         to_address: str = None,
         unlock_sig: bytes = None,
     ) -> None:
@@ -31,6 +32,7 @@ class Transaction:
         self.nonce = nonce
         self.fee = fee
         self.value = value
+        self.from_address = from_address
         self.to_address = to_address
         self.unlock_sig = unlock_sig
 
@@ -53,6 +55,7 @@ class Transaction:
             "nonce": self.nonce,
             "fee": self.fee,
             "value": self.value,
+            "from_address": self.from_address,
             "to_address": self.to_address,
             "unlock_sig": None,
         }
@@ -65,12 +68,13 @@ class Transaction:
         nonce = self.nonce.to_bytes(4, byteorder="little", signed=False)
         fee = self.fee.to_bytes(4, byteorder="little", signed=False)
         value = self.value.to_bytes(8, byteorder="little", signed=False)
+        from_address = str.encode(self.from_address)
         to_address = str.encode(self.to_address)
 
         if self.unlock_sig:
             unlock_sig = self.unlock_sig
 
-        serialized = chain + nonce + fee + value + to_address
+        serialized = chain + nonce + fee + value + from_address + to_address
 
         if not to_sign and self.unlock_sig:
             serialized += unlock_sig
@@ -82,9 +86,10 @@ class Transaction:
         self.nonce = int.from_bytes(serialized_bytes[1:5], byteorder="little")
         self.fee = int.from_bytes(serialized_bytes[5:9], byteorder="little")
         self.value = int.from_bytes(serialized_bytes[9:17], byteorder="little")
-        self.to_address = serialized_bytes[17:51].decode("utf-8")
-        if len(serialized_bytes) > 51:
-            self.unlock_sig = serialized_bytes[51:]
+        self.from_address = serialized_bytes[17:51].decode("utf-8")
+        self.to_address = serialized_bytes[51:85].decode("utf-8")
+        if len(serialized_bytes) > 85:
+            self.unlock_sig = serialized_bytes[85:]
 
     @property
     def id(self) -> str:
@@ -126,6 +131,11 @@ class Transaction:
                 raise TransactionNotValid(errors.TRANSACTION_FIELD_VALUE)
             return False
 
+        if not self.from_address or len(self.from_address) != 34:
+            if raise_exception:
+                raise TransactionNotValid(errors.TRANSACTION_FIELD_FROM_ADDRESS)
+            return False
+
         if not self.to_address or len(self.to_address) != 34:
             if raise_exception:
                 raise TransactionNotValid(errors.TRANSACTION_FIELD_TO_ADDRESS)
@@ -159,45 +169,86 @@ class Transaction:
             and not is_valid_unlocking_script(
                 unlocking_script=self.unlock_sig,
                 transaction_serialized=self.serialize(to_sign=True).hex(),
+                from_address=self.from_address,
             )
         ):
             if raise_exception:
                 raise TransactionNotValid(errors.TRANSACTION_INVALID_SIGNATURE)
             return False
 
+        # Balance and nonce checks (skip for coinbase)
+        if not self.is_coinbase:
+            from luracoin.chain import Chain
+            chain = Chain()
+            account = chain.get_account(self.from_address)
+
+            if not account:
+                if raise_exception:
+                    raise TransactionNotValid(errors.TRANSACTION_NO_BALANCE)
+                return False
+
+            if account["balance"] < self.value + self.fee:
+                if raise_exception:
+                    raise TransactionNotValid(errors.TRANSACTION_NO_BALANCE)
+                return False
+
+            if self.nonce != account["nonce"] + 1:
+                if raise_exception:
+                    raise TransactionNotValid(errors.TRANSACTION_INVALID_NONCE)
+                return False
+
         return True
 
-    def to_transaction_pool(self) -> None:
+    def to_transaction_pool(self) -> bool:
+        if not self.validate():
+            return False
+
         redis_client = redis.Redis(
             host=Config.REDIS_HOST, port=Config.REDIS_PORT, db=Config.REDIS_DB
         )
-
         redis_client.set(self.id, self.serialize())
+        return True
 
-    def save(self, block_height: int) -> None:
+    def save(self, block_height: int, tx_index: int = 0) -> None:
         """
-        Add a transaction to the chainstate. Inside the chainstate database,
-        the following key/value pairs are stored:
+        Save a transaction to the chainstate and update account balances.
+        Luracoin uses an Account Model (not UTXO).
 
-        'c' + 32-byte transaction hash -> unspent transaction output record for
-        that transaction. These records are only present for transactions that
-        have at least one unspent output left.
+        Inside the chainstate database:
+        - 't' + 32-byte tx hash -> block_height (4 bytes) + tx_index (2 bytes)
+        - Account balances are updated via get_account() / set_account()
 
-        Each record stores:
-            The version of the transaction.
-            Whether the transaction was a coinbase or not.
-            Which height block contains the transaction.
-            Which outputs of that transaction are unspent.
-            The scriptPubKey and amount for those unspent outputs.
-
-            [TX VERSION][COINBASE][HEIGHT][NUM OUTPUTS][∞][OUTPUT_LEN][OUTPUT]
-                  ^         ^        ^          ^              ^
-              4 bytes   1 byte   4 bytes      VARINT         VARINT
-
-        'B' -> 32-byte block hash: the block hash up to which the database
-        represents the unspent transaction outputs
+        For non-coinbase transactions:
+        - Subtract (value + fee) from from_address balance
+        - Add value to to_address balance
+        - Increment from_address nonce
         """
-        pass
+        from luracoin.chain import Chain, set_value
+
+        chain = Chain()
+
+        # Store tx record indexed by hash
+        tx_record = (
+            block_height.to_bytes(4, byteorder="little", signed=False)
+            + tx_index.to_bytes(2, byteorder="little", signed=False)
+        )
+        set_value(
+            database_name=Config.DATABASE_CHAINSTATE,
+            key=b"t" + self.id.encode(),
+            value=tx_record,
+        )
+
+        # Debit sender (skip for coinbase)
+        if not self.is_coinbase:
+            sender = chain.get_account(self.from_address) or {"balance": 0, "nonce": 0}
+            sender["balance"] -= self.value + self.fee
+            sender["nonce"] = self.nonce
+            chain.set_account(self.from_address, sender)
+
+        # Credit receiver
+        receiver = chain.get_account(self.to_address) or {"balance": 0, "nonce": 0}
+        receiver["balance"] += self.value
+        chain.set_account(self.to_address, receiver)
 
 
 def build_message(outpoint, pub_key: str) -> str:
@@ -232,14 +283,23 @@ def deserialize_unlocking_script(unlocking_script: bytes) -> dict:
 
 
 def is_valid_unlocking_script(
-    unlocking_script: str, transaction_serialized: str
+    unlocking_script: str,
+    transaction_serialized: str,
+    from_address: str,
 ) -> bool:
-    # TODO: This functions allows to spend all outpoints since we are
-    # verifying the signature not the signature + matching public key.
+    try:
+        script_data = deserialize_unlocking_script(unlocking_script)
+    except binascii.Error:
+        return False
 
     try:
-        unlocking_script = deserialize_unlocking_script(unlocking_script)
-    except binascii.Error:
+        pub_key_bytes = bytes.fromhex(script_data["public_key"])
+        vk = ecdsa.VerifyingKey.from_string(pub_key_bytes, curve=ecdsa.SECP256k1)
+        compressed_pubkey = vk.to_string("compressed")
+        derived_address = pubkey_to_address(compressed_pubkey)
+        if derived_address != from_address:
+            return False
+    except (ecdsa.errors.MalformedPointError, ValueError):
         return False
 
     message = transaction_serialized.encode()
@@ -247,8 +307,8 @@ def is_valid_unlocking_script(
     try:
         is_valid = verify_signature(
             message=message,
-            public_key=bytes.fromhex(unlocking_script["public_key"]),
-            signature=bytes.fromhex(unlocking_script["signature"]),
+            public_key=bytes.fromhex(script_data["public_key"]),
+            signature=bytes.fromhex(script_data["signature"]),
         )
     except ecdsa.keys.BadSignatureError:
         is_valid = False

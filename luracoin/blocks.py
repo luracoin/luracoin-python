@@ -2,7 +2,6 @@ import safer
 import json
 import redis
 import binascii
-import rocksdb
 
 from typing import Any
 from luracoin.config import Config
@@ -21,7 +20,7 @@ class Block(Chain):
         bits: int = None,
         nonce: int = None,
         timestamp: int = None,
-        txns: list = [],
+        txns: list = None,
     ) -> None:
         self.height = height
         self.miner = miner
@@ -30,7 +29,7 @@ class Block(Chain):
         self.timestamp = timestamp
         self.bits = bits
         self.nonce = nonce
-        self.txns = txns
+        self.txns = txns or []
 
     @property
     def id(self) -> str:
@@ -83,14 +82,41 @@ class Block(Chain):
         keys = redis_client.keys()
         transactions = []
 
-        for key in sorted(keys):
+        for key in keys:
             serialized_tx = redis_client.get(key)
             txn = Transaction()
-            txn.deserialize(serialized_tx.hex())
+            txn.deserialize(serialized_tx)
             transactions.append(txn)
 
-        self.txns = transactions
+        # Sort by fee descending
+        transactions.sort(key=lambda t: t.fee, reverse=True)
+
+        # Limit to max block size
+        from luracoin.chain import max_block_size
+        header_size = 118
+        max_size = max_block_size(self.height or 0) - header_size
+        selected = []
+        current_size = 0
+        for txn in transactions:
+            tx_size = Config.TRANSACTION_LENGTH
+            if current_size + tx_size > max_size:
+                break
+            selected.append(txn)
+            current_size += tx_size
+
+        self.txns = selected
         return self
+
+    def clean_mempool(self) -> None:
+        """Remove included transactions from Redis mempool."""
+        try:
+            redis_client = redis.Redis(
+                host=Config.REDIS_HOST, port=Config.REDIS_PORT, db=Config.REDIS_DB
+            )
+            for txn in self.txns:
+                redis_client.delete(txn.id)
+        except redis.exceptions.ConnectionError:
+            pass
 
     def serialize(self) -> bytes:
         version_bytes = self.version.to_bytes(
@@ -107,20 +133,6 @@ class Block(Chain):
         )
         bits_bytes = self.bits
         nonce_bytes = self.nonce.to_bytes(4, byteorder="little", signed=False)
-
-        """
-        print("\n----------")
-        print(f"magic bytes: {Config.MAGIC_BYTES.hex()}")
-        print(f"version_bytes: {version_bytes.hex()}")
-        print(f"id_bytes: {id_bytes.hex()}")
-        print(f"prev_block_hash_bytes: {prev_block_hash_bytes.hex()}")
-        print(f"miner_bytes: {miner_bytes.hex()}")
-        print(f"height_bytes: {height_bytes.hex()}")
-        print(f"timestamp_bytes: {timestamp_bytes.hex()}")
-        print(f"bits_bytes: {bits_bytes.hex()}")
-        print(f"nonce_bytes: {nonce_bytes.hex()}")
-        print("----------\n")
-        """
 
         transaction_bytes = b""
         for txn in self.txns:
@@ -158,36 +170,50 @@ class Block(Chain):
         self.txns = []
         block_transations = block_serialized[118:]
 
-        for i in range(0, len(block_transations), 179):
+        for i in range(0, len(block_transations), Config.TRANSACTION_LENGTH):
             txn = Transaction()
-            txn.deserialize(block_transations[i : i + 179])
+            txn.deserialize(block_transations[i : i + Config.TRANSACTION_LENGTH])
             self.txns.append(txn)
         return self
 
     def is_valid_proof(self) -> bool:
         target = bits_to_target(self.bits)
-        if self.id.startswith("00000"):
-            print(f"{int(self.id, 16)} <= {int(target, 16)}")
         return int(self.id, 16) <= int(target, 16)
 
     def validate(self) -> bool:
-        """
-        Validate:
-        1) [X] POW
-        2) [ ] Coins supply
-        3) [ ] Transactions
-        4) [ ] Block Size
-        5) [ ] Reward + Fees
-        6) [ ] Timestamp
-        7) [X] Block Height
-        """
         if not self.is_valid_proof():
-            print("Proof of work is invalid")
             return False
 
+        # Block size
+        from luracoin.chain import max_block_size
+        if len(self.serialize()) > max_block_size(self.height):
+            return False
+
+        # Timestamp: not too far in the future
+        import time
+        if self.timestamp > int(time.time()) + Config.MAX_FUTURE_BLOCK_TIME:
+            return False
+
+        # Timestamp and height vs previous block
+        if self.height > 0:
+            prev_block = Block.get(self.height - 1)
+            if prev_block:
+                if self.timestamp <= prev_block.timestamp:
+                    return False
+                if self.height != prev_block.height + 1:
+                    return False
+
+        # Validate transactions
         for txn in self.txns:
             if not txn.validate():
-                print("Transaction is invalid")
+                return False
+
+        # Coin supply: coinbase value <= mining_reward + sum(fees)
+        total_fees = sum(txn.fee for txn in self.txns if not txn.is_coinbase)
+        coinbase_txns = [txn for txn in self.txns if txn.is_coinbase]
+        if coinbase_txns:
+            coinbase_value = sum(txn.value for txn in coinbase_txns)
+            if coinbase_value > mining_reward(self.height) + total_fees:
                 return False
 
         return True
@@ -216,7 +242,7 @@ class Block(Chain):
         Return the last block
         """
         obj = cls.__new__(cls)
-        return obj.get_block(obj.tip)
+        return cls.get(obj.tip)
 
     @classmethod
     def get(cls, height):
@@ -237,10 +263,6 @@ class Block(Chain):
 
 
     def save(self) -> None:
-        """
-        if not self.validate():
-            raise BlockNotValidError("Block is not valid")
-        """
         file_number = self.current_file_number
         current_block_file = f"{Config.BLOCKS_DIR}{get_current_blk_file(self.current_file_number)}"
 
@@ -249,17 +271,44 @@ class Block(Chain):
             block_size = len(serialized_block)
             w.write(block_size.to_bytes(4, byteorder="little", signed=False) + serialized_block)
 
-        print(Block.get_blocks_from_file(0))
         self.set_tip(self.height)
         self.set_block_file_number(self.height, file_number)
 
-        miner_balance = self.get_account(self.miner)
-        miner_reward = mining_reward(self.height)
-        print(f"Miner reward: {miner_reward}")
-        
-        # TODO: Update balances
-        # TODO: Update stacking
-        # TODO: Update difficulty
+        # Save each transaction and update balances
+        for i, txn in enumerate(self.txns):
+            txn.save(block_height=self.height, tx_index=i)
 
-    def create(self, propagate: bool = True) -> None:
-        pass
+        # Credit mining reward to miner
+        self.credit_account(self.miner, mining_reward(self.height))
+
+        # Clean mempool
+        self.clean_mempool()
+
+    def create(self) -> "Block":
+        from luracoin.pow import proof_of_work
+        import time
+
+        prev_block = Block.get(self.tip)
+        self.height = self.tip + 1 if prev_block else 0
+        self.prev_block_hash = prev_block.id if prev_block else "0" * 64
+        self.version = 1
+        self.timestamp = int(time.time())
+        self.bits = Config.STARTING_DIFFICULTY
+
+        # Coinbase transaction
+        total_fees = sum(txn.fee for txn in self.txns)
+        coinbase = Transaction(
+            chain=0,
+            nonce=0,
+            fee=0,
+            value=mining_reward(self.height) + total_fees,
+            from_address="0" * 34,
+            to_address=self.miner,
+            unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
+        )
+        self.txns.insert(0, coinbase)
+
+        self.nonce = 0
+        proof_of_work(self)
+        self.save()
+        return self

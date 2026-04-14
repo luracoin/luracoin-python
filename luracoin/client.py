@@ -3,13 +3,13 @@ Luracoin client
 
 Usage:
   client.py generateWallet
-  client.py mine
+  client.py mine --address=<address>
+  client.py getBalance <address>
+  client.py getBlock <height>
+  client.py getInfo
 
 Options:
   -h --help            Show help
-  -w, --wallet PATH    Use a particular wallet file (e.g. `-w ./wallet2.dat`)
-  -n, --node HOSTNAME  The hostname of node to use for RPC (default: localhost)
-  -p, --port PORT      Port node is listening on (default: 9999)
 """
 import json
 
@@ -19,30 +19,68 @@ from luracoin.exceptions import WalletAlreadyExistError
 from luracoin.wallet import create_wallet, generate_wallet
 
 
-def main(args):  # type: ignore
+def main(args):
     if args["generateWallet"]:
-        #generateWallet(save=args["--save"])
-        generateWallet(save=False)
+        generateWallet()
     elif args["mine"]:
-        mine()
+        mine(args["--address"])
+    elif args["getBalance"]:
+        get_balance(args["<address>"])
+    elif args["getBlock"]:
+        get_block(int(args["<height>"]))
+    elif args["getInfo"]:
+        get_info()
 
 
-def mine():
-    print("Not implemented yet.")
+def mine(address):
+    from luracoin.genesis import initialize_chain
+    from luracoin.blocks import Block
+
+    initialize_chain()
+
+    while True:
+        block = Block(miner=address)
+        block.create()
+        print(f"Mined block {block.height} | nonce: {block.nonce}")
 
 
-def generateWallet(save):  # type: ignore
-    if save:
-        try:
-            wallet = create_wallet()
-        except WalletAlreadyExistError:
-            wallet = {"message": "Wallet already exist"}
-    else:
-        wallet = generate_wallet()
-
+def generateWallet():
+    wallet = generate_wallet()
     print(json.dumps(wallet, indent=4))
 
 
+def get_balance(address):
+    from luracoin.chain import Chain
+
+    chain = Chain()
+    account = chain.get_account(address)
+    if account:
+        print(json.dumps(account, indent=4))
+    else:
+        print(json.dumps({"balance": 0, "nonce": 0}, indent=4))
+
+
+def get_block(height):
+    from luracoin.blocks import Block
+
+    block = Block.get(height)
+    if block:
+        print(json.dumps(block.json(), indent=4))
+    else:
+        print(f"Block {height} not found.")
+
+
+def get_info():
+    from luracoin.chain import Chain
+    from luracoin.config import Config
+
+    chain = Chain()
+    info = {
+        "height": chain.tip,
+        "difficulty": Config.STARTING_DIFFICULTY.hex(),
+    }
+    print(json.dumps(info, indent=4))
+
+
 if __name__ == "__main__":
-    #main(docopt(__doc__, version="luracoin client 0.1"))  # type: ignore
-    generateWallet(save=False)
+    main(docopt(__doc__, version="luracoin client 0.1"))

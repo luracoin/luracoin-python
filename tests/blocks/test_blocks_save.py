@@ -17,6 +17,7 @@ def test_block_save():
         nonce=1,
         fee=0,
         value=50000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -32,13 +33,12 @@ def test_block_save():
         txns=[coinbase_transaction_1],
     )
 
-    print(block1.json())
-
     coinbase_transaction_2 = Transaction(
         chain=1,
         nonce=2,
         fee=0,
         value=50000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -54,13 +54,9 @@ def test_block_save():
         txns=[coinbase_transaction_2],
     )
 
-    print(block2.json())
-
     chain = Chain()
     assert chain.tip == 0
     block1.save()
     assert chain.tip == 0
     block2.save()
     assert chain.tip == 1
-
-    assert False

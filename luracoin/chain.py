@@ -1,6 +1,6 @@
 import json
 import os
-import rocksdb
+from rocksdict import Rdict
 from luracoin.config import Config
 from luracoin.helpers import mining_reward
 import safer
@@ -13,8 +13,8 @@ class Chain(object):
         Return the current height of the chain, the tip of the chain
         """
         current_height = get_value(
-            database_name=Config.DATABASE_CHAINSTATE.encode(),
-            key="height".encode(),
+            database_name=Config.DATABASE_CHAINSTATE,
+            key=b"height",
         )
         if not current_height:
             return 0
@@ -26,8 +26,8 @@ class Chain(object):
         Set the current height, the tip of the chain
         """
         set_value(
-            database_name=Config.DATABASE_CHAINSTATE.encode(),
-            key="height".encode(),
+            database_name=Config.DATABASE_CHAINSTATE,
+            key=b"height",
             value=height.to_bytes(4, byteorder="little", signed=False),
         )
 
@@ -111,17 +111,44 @@ class Chain(object):
             value=json.dumps(data).encode(),
         )
 
+    def credit_account(self, address, amount):
+        account = self.get_account(address) or {"balance": 0, "nonce": 0}
+        account["balance"] += amount
+        self.set_account(address, account)
+
+    def debit_account(self, address, amount):
+        account = self.get_account(address) or {"balance": 0, "nonce": 0}
+        account["balance"] -= amount
+        self.set_account(address, account)
+
+    def increment_nonce(self, address, nonce):
+        account = self.get_account(address) or {"balance": 0, "nonce": 0}
+        account["nonce"] = nonce
+        self.set_account(address, account)
 
 
-def open_database(database_name: str) -> rocksdb.DB:
+
+_db_instances = {}
+
+
+def open_database(database_name: str) -> Rdict:
     """
-    Open a RockDB database
+    Open a RocksDB database (singleton per path).
     """
-    db = rocksdb.DB(
-        f"{Config.DATA_DIR}{database_name}",
-        rocksdb.Options(create_if_missing=True),
-    )
-    return db
+    path = f"{Config.DATA_DIR}{database_name}"
+    if path not in _db_instances:
+        _db_instances[path] = Rdict(path)
+    return _db_instances[path]
+
+
+def close_databases():
+    """Close all open database connections."""
+    for path in list(_db_instances.keys()):
+        try:
+            _db_instances[path].close()
+        except Exception:
+            pass
+    _db_instances.clear()
 
 
 def set_value(database_name: str, key: bytes, value: bytes) -> None:
@@ -129,7 +156,7 @@ def set_value(database_name: str, key: bytes, value: bytes) -> None:
     Sets a value in a RocksDB database
     """
     db = open_database(database_name)
-    db.put(key, value)
+    db[key] = value
 
 
 def get_value(database_name, key):
@@ -152,7 +179,13 @@ def get_blk_file_size(file_name: str) -> int:
 
 
 def max_block_size(current_height: int) -> int:
-    return Config.MAX_BLOCK_SIZE
+    result = Config.MAX_BLOCK_SIZE[0]
+    for threshold, size in sorted(Config.MAX_BLOCK_SIZE.items()):
+        if current_height >= threshold:
+            result = size
+        else:
+            break
+    return result
 
 
 def get_current_blk_file(current_file_number) -> str:

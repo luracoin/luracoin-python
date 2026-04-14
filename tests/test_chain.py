@@ -1,9 +1,11 @@
 import pytest
+from unittest.mock import patch, call
 from luracoin.config import Config
 from luracoin.chain import (
     next_blk_file,
     get_blk_file_size,
     get_current_blk_file,
+    open_database,
     Chain,
 )
 
@@ -91,6 +93,27 @@ def test_chain_current_file_number_increase_when_file_surpases_the_max_size_allo
     actual_file_number = chain.current_file_number
 
     assert actual_file_number == 1
+
+
+def test_database_name_always_string():
+    """
+    Bug 1.3: set_tip/tip pass database_name.encode() (bytes) while other
+    methods pass database_name as string. open_database expects a string.
+    All calls must pass strings.
+    """
+    chain = Chain()
+
+    with patch("luracoin.chain.open_database", wraps=open_database) as mock_open:
+        chain.set_tip(5)
+        for c in mock_open.call_args_list:
+            db_name = c[0][0] if c[0] else c[1]["database_name"]
+            assert isinstance(db_name, str), f"database_name should be str, got {type(db_name)}: {db_name}"
+
+    with patch("luracoin.chain.open_database", wraps=open_database) as mock_open:
+        chain.tip
+        for c in mock_open.call_args_list:
+            db_name = c[0][0] if c[0] else c[1]["database_name"]
+            assert isinstance(db_name, str), f"database_name should be str, got {type(db_name)}: {db_name}"
 
 
 def test_get_blk_file_size() -> None:

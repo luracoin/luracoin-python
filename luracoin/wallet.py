@@ -97,6 +97,8 @@ def pubkey_to_address(pubkey: bytes) -> str:
     sha = hashlib.sha256(pubkey).digest()
     ripe = hashlib.new("ripemd160", sha).digest()
     address = b58encode_check(b"\x30" + ripe)
+    if isinstance(address, bytes):
+        address = address.decode()
     if len(address) != 34:
         raise RuntimeError("Invalid address")
     return address
