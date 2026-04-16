@@ -15,6 +15,7 @@ def test_block_serialize__with_one_transaction(blockchain):
         nonce=8763,
         fee=100,
         value=50000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -42,6 +43,7 @@ def test_block_serialize__with_multiple_transaction():
         nonce=1,
         fee=0,
         value=50000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -64,6 +66,7 @@ def test_block_serialize__with_multiple_transaction():
         nonce=2,
         fee=0,
         value=50000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )

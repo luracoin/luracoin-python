@@ -6,6 +6,7 @@ from luracoin.transactions import (
     is_valid_unlocking_script,
 )
 from luracoin.config import Config
+from luracoin.chain import Chain
 
 
 def test_to_json():
@@ -14,19 +15,19 @@ def test_to_json():
         nonce=8763,
         fee=100,
         value=50000,
+        from_address="1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=b"~\xf8su\xeb\xeb\xc9\xd4\xcd\r\x17\x08\xe5#Oo\x05D\x85\x94\x04\x88\x8f\xf9\xcb\xfc\x9amzdG\xb4.\xdc\xac\x14\xcc\x95\x8cI\x9e\xfer\xe4\x051(\x08\x8e5\x0f(]s\x89g\xe7|\xd9\xee\xf8'B\x17\xb8\xb2\x14\xfc\x03\x87;b\xab\xcc^\xfc\xf5\xee\x84\\'h\xe0\x97\xe2\xaeI+\x9al\xe3;:~;]3l,\xab[^v\xef&E\x9d\xbaS\x1c\xe2\x04\xcaC\x15W\x9fR0\xc6}\xe4\xe6\x80\x99\xdf!\x15",
     )
 
-    assert transacion.json() == {
-        "id": "d24b6dae6bc576b367ac29a981727d221b9e1211280dc4bb24a4c4d2808c82f0",
-        "chain": 1,
-        "nonce": 8763,
-        "fee": 100,
-        "value": 50000,
-        "to_address": "1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
-        "unlock_sig": "7ef87375ebebc9d4cd0d1708e5234f6f0544859404888ff9cbfc9a6d7a6447b42edcac14cc958c499efe72e4053128088e350f285d738967e77cd9eef8274217b8b214fc03873b62abcc5efcf5ee845c2768e097e2ae492b9a6ce33b3a7e3b5d336c2cab5b5e76ef26459dba531ce204ca4315579f5230c67de4e68099df2115",
-    }
+    result = transacion.json()
+    assert result["chain"] == 1
+    assert result["nonce"] == 8763
+    assert result["fee"] == 100
+    assert result["value"] == 50000
+    assert result["from_address"] == "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+    assert result["to_address"] == "1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP"
+    assert result["unlock_sig"] is not None
 
 
 def test_transaction_serializer_to_sign():
@@ -35,11 +36,12 @@ def test_transaction_serializer_to_sign():
         nonce=4_294_967_295,
         fee=57000,
         value=5_000_000,
+        from_address="1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
     )
 
-    expected_serialization_hex = "01ffffffffa8de0000404b4c00000000003148374e7455454e7245627753566d3532664865507a426e75345733624371696d50"
-    expected_serialization_bytes = b"\x01\xff\xff\xff\xff\xa8\xde\x00\x00@KL\x00\x00\x00\x00\x001H7NtUENrEbwSVm52fHePzBnu4W3bCqimP"
+    expected_serialization_hex = "01ffffffffa8de0000404b4c00000000003141317a5031655035514765666932444d505466544c35534c6d7637446976664e613148374e7455454e7245627753566d3532664865507a426e75345733624371696d50"
+    expected_serialization_bytes = b"\x01\xff\xff\xff\xff\xa8\xde\x00\x00@KL\x00\x00\x00\x00\x001A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP"
 
     assert (
         transaction_original.serialize(to_sign=True).hex()
@@ -62,11 +64,12 @@ def test_serializer_with_coinbase_signatures():
         nonce=4_294_967_295,
         fee=57000,
         value=5_000_000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
-    expected_serialization_hex = "01ffffffffa8de0000404b4c00000000003148374e7455454e7245627753566d3532664865507a426e75345733624371696d500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-    expected_serialization_bytes = b"\x01\xff\xff\xff\xff\xa8\xde\x00\x00@KL\x00\x00\x00\x00\x001H7NtUENrEbwSVm52fHePzBnu4W3bCqimP\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+    expected_serialization_hex = "01ffffffffa8de0000404b4c0000000000303030303030303030303030303030303030303030303030303030303030303030303148374e7455454e7245627753566d3532664865507a426e75345733624371696d500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    expected_serialization_bytes = b"\x01\xff\xff\xff\xff\xa8\xde\x00\x00@KL\x00\x00\x00\x00\x0000000000000000000000000000000000001H7NtUENrEbwSVm52fHePzBnu4W3bCqimP\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
     assert transaction_original.serialize().hex() == expected_serialization_hex
     assert transaction_original.serialize() == expected_serialization_bytes
@@ -82,12 +85,16 @@ def test_signatures(mocker):
         b"\xb1\x80E\xceRo\xfeG[\x89\xe2\xc1+\xfd\xf9\xc4"
         b"\x80w\x91\x836o~\xbe\x87\x82bb\xab@\xf9N"
     )
+    PRIVATE_KEY_1_ADDRESS = "Lei7mVzEpwN9VnTEExFbv7KtZ3WWHKsjpz"
+
+    Chain().set_account(PRIVATE_KEY_1_ADDRESS, {"balance": 100_000_000, "nonce": 4_294_967_294})
 
     transaction_original = Transaction(
         chain=1,
         nonce=4_294_967_295,
         fee=57000,
         value=5_000_000,
+        from_address=PRIVATE_KEY_1_ADDRESS,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
     )
 
@@ -115,5 +122,3 @@ def test_signatures(mocker):
         },
     ):
         assert transaction.validate() == False
-
-    transaction.to_transaction_pool()

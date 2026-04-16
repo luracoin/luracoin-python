@@ -75,10 +75,12 @@ def test_is_hex() -> None:
     )
 
 
-@pytest.mark.skip(reason="WIP")
 def test_sha256d() -> None:
-    # TODO: Test for sha256d
-    pass
+    from luracoin.helpers import sha256d
+
+    assert sha256d("hello") == "9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"
+    assert sha256d(b"hello") == "9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"
+    assert sha256d("") == "5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456"
 
 
 def test_bits_to_target() -> None:

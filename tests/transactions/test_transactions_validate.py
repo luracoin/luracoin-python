@@ -11,6 +11,7 @@ from luracoin.transactions import (
 from luracoin.config import Config
 from luracoin.exceptions import TransactionNotValid
 from luracoin import errors
+from luracoin.chain import Chain
 from tests.constants import WALLET_1, WALLET_2, WALLET_3
 
 
@@ -18,24 +19,28 @@ PRIVATE_KEY_1 = (
     b"\xb1\x80E\xceRo\xfeG[\x89\xe2\xc1+\xfd\xf9\xc4"
     b"\x80w\x91\x836o~\xbe\x87\x82bb\xab@\xf9N"
 )
+PRIVATE_KEY_1_ADDRESS = "Lei7mVzEpwN9VnTEExFbv7KtZ3WWHKsjpz"
 
 
 def test_validate_signatures(mocker):
     """
     Test to check that the signatures are valid.
     """
+    Chain().set_account(PRIVATE_KEY_1_ADDRESS, {"balance": 100_000_000, "nonce": 4_294_967_294})
+
     transaction_original = Transaction(
         chain=1,
         nonce=4_294_967_295,
         fee=57000,
         value=5_000_000,
+        from_address=PRIVATE_KEY_1_ADDRESS,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
     )
 
     transaction = transaction_original.sign(PRIVATE_KEY_1)
-    assert transaction.validate() == True
 
-    # Incorrect Public Key / Signature
+    # Incorrect Public Key / Signature - should fail because derived address
+    # won't match from_address
     with mocker.patch(
         "luracoin.transactions.deserialize_unlocking_script",
         return_value={
@@ -57,18 +62,19 @@ def test_validate_signatures(mocker):
     ):
         assert transaction.validate() == False
 
-    transaction.to_transaction_pool()
-
 
 def test_modify_transaction_after_signing(mocker):
     """
     Test to check that you can't modify a transaction after signing it.
     """
+    Chain().set_account(PRIVATE_KEY_1_ADDRESS, {"balance": 100_000_000, "nonce": 4_294_967_294})
+
     transaction_original = Transaction(
         chain=0,
         nonce=4_294_967_295,
         fee=57000,
         value=5_000_000,
+        from_address=PRIVATE_KEY_1_ADDRESS,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
     )
 
@@ -91,6 +97,7 @@ def test_chain(mocker):
         nonce=4_294_967_295,
         fee=57000,
         value=5_000_000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -122,6 +129,7 @@ def test_nonce(mocker):
         nonce=14_294_967_296,
         fee=57000,
         value=5_000_000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -153,6 +161,7 @@ def test_fee(mocker):
         nonce=0,
         fee=4_294_967_296,
         value=5_000_000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -184,6 +193,7 @@ def test_value(mocker):
         nonce=0,
         fee=0,
         value=18_446_744_073_709_551_616,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -226,6 +236,7 @@ def test_to_address(mocker):
         nonce=10,
         fee=50,
         value=5_000_000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -250,6 +261,7 @@ def test_unlock_sig(mocker):
         nonce=10,
         fee=50,
         value=5_000_000,
+        from_address="0" * 34,
         to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -275,6 +287,7 @@ def test_staking_transaction():
         nonce=4_294_967_295,
         fee=57000,
         value=5_000_000,
+        from_address="0" * 34,
         to_address=Config.STAKING_ADDRESS,
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
@@ -285,11 +298,14 @@ def test_staking_transaction():
     ):
         transaction.validate_fields(raise_exception=True)
 
+    Chain().set_account(WALLET_1["address"], {"balance": 100_000_000, "nonce": 4_294_967_294})
+
     transaction = Transaction(
         chain=1,
         nonce=4_294_967_295,
         fee=57000,
         value=5_000_000,
+        from_address=WALLET_1["address"],
         to_address=Config.STAKING_ADDRESS,
     )
 

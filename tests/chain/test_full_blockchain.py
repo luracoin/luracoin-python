@@ -27,7 +27,6 @@ def test_full_blockchain():
         nonce=156369,
         txns=[],
     )
-    print("\nBlock 1 \n" + json.dumps(block1.json(), indent=4))
     block1.save()
     # Check chain Height is updated
     assert chain.tip == 0
@@ -43,12 +42,16 @@ def test_full_blockchain():
     # TODO: Check file content
     # TODO: Check stacking
 
+    # Give WALLET_1 balance so it can send a transaction
+    chain.set_account(WALLET_1["address"], {"balance": Config.LURASHIS_PER_COIN * 100, "nonce": 0})
+
     # Transaction to stack 15 Luracoins
     transaction_1 = Transaction(
         chain=1,
         nonce=1,
         fee=0,
         value=Config.LURASHIS_PER_COIN * 15,
+        from_address=WALLET_1["address"],
         to_address=Config.STAKING_ADDRESS,
     )
 
@@ -65,8 +68,6 @@ def test_full_blockchain():
         nonce=4358788,
         txns=[transaction_1],
     )
-    print("\nBlock 2 \n" + json.dumps(block2.json(), indent=4))
-
     block2.save()
     # Check chain Height is updated
     assert chain.tip == 1
@@ -77,8 +78,3 @@ def test_full_blockchain():
     # Check that the block retrieved from the files is the same
     assert Block.get(1).id == block2.id
     assert Block.get(1).serialize() == block2.serialize()
-    # TODO: Check miner balance
-    # TODO: Check file content
-    # TODO: Check stacking
-
-    assert False

@@ -60,3 +60,41 @@ def is_hex(s: str) -> bool:
 
 def bytes_to_signing_key(private_key: bytes) -> ecdsa.SigningKey:
     return ecdsa.SigningKey.from_string(private_key, curve=ecdsa.SECP256k1)
+
+
+def calculate_new_bits(prev_bits: bytes, actual_time: int, expected_time: int) -> bytes:
+    """
+    Adjust difficulty based on actual vs expected time for the last interval.
+    Returns new 4-byte compact bits value.
+    """
+    target = int(bits_to_target(prev_bits), 16)
+
+    # Clamp adjustment to 4x in either direction
+    if actual_time < expected_time // 4:
+        actual_time = expected_time // 4
+    if actual_time > expected_time * 4:
+        actual_time = expected_time * 4
+
+    new_target = target * actual_time // expected_time
+
+    # Cap at maximum target
+    max_target = int(bits_to_target(b"\x1f\xff\xff\xff"), 16)
+    if new_target > max_target:
+        new_target = max_target
+
+    # Convert target integer back to compact bits format
+    # Express new_target as: coefficient * 256^(exponent-3)
+    if new_target == 0:
+        return b"\x00\x00\x00\x00"
+
+    # Get byte representation of target
+    target_bytes = new_target.to_bytes((new_target.bit_length() + 7) // 8, byteorder="big")
+    exponent = len(target_bytes)
+
+    # Coefficient is the top 3 bytes
+    if exponent >= 3:
+        coefficient = target_bytes[:3]
+    else:
+        coefficient = target_bytes.ljust(3, b"\x00")
+
+    return bytes([exponent]) + coefficient
