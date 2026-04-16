@@ -3,14 +3,16 @@ Luracoin client
 
 Usage:
   client.py generateWallet
-  client.py mine --address=<address>
+  client.py mine --address=<address> [--port=<port>]
   client.py getBalance <address>
   client.py getBlock <height>
   client.py getInfo
 
 Options:
   -h --help            Show help
+  --port=<port>        P2P listening port [default: 9999]
 """
+import asyncio
 import json
 
 from docopt import docopt
@@ -23,7 +25,8 @@ def main(args):
     if args["generateWallet"]:
         generateWallet()
     elif args["mine"]:
-        mine(args["--address"])
+        port = int(args["--port"] or 9999)
+        mine(args["--address"], port)
     elif args["getBalance"]:
         get_balance(args["<address>"])
     elif args["getBlock"]:
@@ -32,16 +35,12 @@ def main(args):
         get_info()
 
 
-def mine(address):
-    from luracoin.genesis import initialize_chain
-    from luracoin.blocks import Block
+def mine(address, port=9999):
+    from luracoin.network.miner import MiningNode
 
-    initialize_chain()
-
-    while True:
-        block = Block(miner=address)
-        block.create()
-        print(f"Mined block {block.height} | nonce: {block.nonce}")
+    node = MiningNode(address=address, port=port)
+    print(f"Starting mining node on port {port} with address {address}")
+    asyncio.run(node.start())
 
 
 def generateWallet():
