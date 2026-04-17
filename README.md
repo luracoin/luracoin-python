@@ -26,27 +26,84 @@ It's easy and fun. We don't need performance yet, we need more contributors. I w
 
 ## Install
 
-#### MacOS
+Luracoin installs as a CLI. After installation the `luracoin` command is
+available globally on your `PATH`.
+
+### Ubuntu / Debian
+
 ```shell
-brew install rocksdb
+# System dependencies (RocksDB C++ library)
+sudo apt update
+sudo apt install -y build-essential librocksdb-dev python3-dev python3-pip python3-venv
+
+# Clone and install
+git clone https://github.com/luracoin/luracoin-python.git
+cd luracoin-python
+
+# Recommended: use a virtualenv or pipx
+python3 -m venv .venv
+source .venv/bin/activate
+pip install .
 ```
 
+For a fully isolated system-wide install, use [`pipx`](https://pipx.pypa.io/):
+
+```shell
+sudo apt install -y pipx
+pipx install .
+```
+
+### MacOS
+
+```shell
+brew install rocksdb
+git clone https://github.com/luracoin/luracoin-python.git
+cd luracoin-python
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install .
+```
+
+### Development install
+
+Editable install with dev dependencies (pytest, black, flake8, mypy):
+
+```shell
+pip install -e ".[dev]"
+```
+
+### Uninstall
+
+```shell
+pip uninstall luracoin
+# or, if installed with pipx:
+pipx uninstall luracoin
+```
 
 ## Testing
-For testing use ```pytest```
+
 ```shell
 pytest -v
 ```
 
 ## Run commands
-```
-python -m luracoin.client COMAND_NAME
+
+After installation, invoke the CLI directly:
+
+```shell
+luracoin --help
+luracoin generateWallet
+luracoin getInfo
+luracoin getBalance <address>
+luracoin getBlock <height>
+luracoin mine --address=<address> [--port=9999]
 ```
 
-#### Generate address
+#### Generate a wallet
 
-```
-python -m luracoin.client generateAddress
+```shell
+luracoin generateWallet
 ```
 
 Response:

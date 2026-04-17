@@ -1,12 +1,12 @@
 """
-Luracoin client
+Luracoin CLI
 
 Usage:
-  client.py generateWallet
-  client.py mine --address=<address> [--port=<port>]
-  client.py getBalance <address>
-  client.py getBlock <height>
-  client.py getInfo
+  luracoin generateWallet
+  luracoin mine --address=<address> [--port=<port>]
+  luracoin getBalance <address>
+  luracoin getBlock <height>
+  luracoin getInfo
 
 Options:
   -h --help            Show help
@@ -17,8 +17,14 @@ import json
 
 from docopt import docopt
 
-from luracoin.exceptions import WalletAlreadyExistError
-from luracoin.wallet import create_wallet, generate_wallet
+from luracoin import __version__
+from luracoin.wallet import generate_wallet
+
+
+def cli() -> None:
+    """Entry point registered as the `luracoin` console script."""
+    args = docopt(__doc__, version=f"luracoin {__version__}")
+    main(args)
 
 
 def main(args):
@@ -82,4 +88,4 @@ def get_info():
 
 
 if __name__ == "__main__":
-    main(docopt(__doc__, version="luracoin client 0.1"))
+    cli()
