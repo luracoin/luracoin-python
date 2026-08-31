@@ -1,4 +1,12 @@
-def proof_of_work(block: "Block", starting_at=0, stop_event=None) -> int:  # type: ignore
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from luracoin.blocks import Block
+
+
+def proof_of_work(block: Block, starting_at=0, stop_event=None) -> int:
     """
     Simple Proof of Work Algorithm.
 
@@ -10,6 +18,8 @@ def proof_of_work(block: "Block", starting_at=0, stop_event=None) -> int:  # typ
 
     while not block.is_valid_proof():
         if stop_event and block.nonce % 1000 == 0 and stop_event.is_set():
+            return -1
+        if block.nonce >= 0xFFFFFFFF:
             return -1
         block.nonce += 1
 

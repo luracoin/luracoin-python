@@ -1,9 +1,13 @@
 import pytest
 import os
+import stat
 from binascii import unhexlify
 from luracoin.wallet import (
-    address_to_pubkey, build_p2pkh, create_wallet,
-    pubkey_to_address, generate_wallet,
+    address_to_pubkey,
+    build_p2pkh,
+    create_wallet,
+    pubkey_to_address,
+    generate_wallet,
 )
 from luracoin.config import Config
 from luracoin.exceptions import WalletAlreadyExistError
@@ -24,25 +28,33 @@ def test_build_p2pkh_returns_decoded_pubkey():
 
 
 def test_pubkey_to_address_returns_string():
-    pubkey = unhexlify("03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3")
+    pubkey = unhexlify(
+        "03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3"
+    )
     address = pubkey_to_address(pubkey)
     assert isinstance(address, str)
 
 
 def test_pubkey_to_address_starts_with_L():
-    pubkey = unhexlify("03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3")
+    pubkey = unhexlify(
+        "03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3"
+    )
     address = pubkey_to_address(pubkey)
     assert address.startswith("L")
 
 
 def test_pubkey_to_address_length_34():
-    pubkey = unhexlify("03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3")
+    pubkey = unhexlify(
+        "03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3"
+    )
     address = pubkey_to_address(pubkey)
     assert len(address) == 34
 
 
 def test_pubkey_to_address_deterministic():
-    pubkey = unhexlify("03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3")
+    pubkey = unhexlify(
+        "03db6eb7d3fba45dcae7ea92a771a2749f5332b34f86cabc1766d46906eefbc2f3"
+    )
     assert pubkey_to_address(pubkey) == pubkey_to_address(pubkey)
 
 
@@ -53,6 +65,7 @@ def test_create_wallet_saves_file(tmp_path):
 
     wallet = create_wallet()
     assert os.path.exists(wallet_path)
+    assert stat.S_IMODE(os.stat(wallet_path).st_mode) == 0o600
     assert "address" in wallet
     assert "private_key" in wallet
 
@@ -67,8 +80,29 @@ def test_create_wallet_raises_if_exists(tmp_path):
         create_wallet()
 
 
+def test_create_wallet_refuses_symlink(tmp_path):
+    target = tmp_path / "target"
+    target.write_text("do not overwrite")
+    wallet_path = tmp_path / "wallet.dat"
+    wallet_path.symlink_to(target)
+    Config.WALLET_PATH = str(wallet_path)
+
+    with pytest.raises(WalletAlreadyExistError):
+        create_wallet()
+    assert target.read_text() == "do not overwrite"
+
+
 def test_generate_wallet_all_fields():
     wallet = generate_wallet()
-    expected_keys = ["input", "mnemonic", "seed", "xprv", "private_key", "public_key", "verifying_key", "address"]
+    expected_keys = [
+        "input",
+        "mnemonic",
+        "seed",
+        "xprv",
+        "private_key",
+        "public_key",
+        "verifying_key",
+        "address",
+    ]
     for key in expected_keys:
         assert key in wallet, f"Missing key: {key}"

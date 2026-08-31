@@ -1,3 +1,6 @@
+# PUBLIC TEST FIXTURES ONLY. These private keys and mnemonics are committed,
+# permanently compromised, and must never receive funds of any value.
+
 WALLET_1 = {
     "input": "105B4F699175E425688714FC880CF9069894A3D5D7EBB87CC340EDAB9B14E979",
     "mnemonic": "aware surprise surprise carry furnace bargain pear tip wish document dinner artwork matter faint firm word reveal toward south swap rifle media planet capital",
@@ -6,7 +9,7 @@ WALLET_1 = {
     "private_key": "b5d1e2143c234a9949066ee5199a79192e78f4127893dc00eefb28a0b8a64078",
     "public_key": "031171ab965a7ccd1ee72bf1d95251ede9bb07049e1df91ef4f6b7349c2bf4fe3e",
     "verifying_key": "1171ab965a7ccd1ee72bf1d95251ede9bb07049e1df91ef4f6b7349c2bf4fe3e5098089791c7c46a858f8a362f9cba7d75a3253340462e7e35b1320cdab3957f",
-    "address": "LM6jpRVE2TYoZKc1onms6d6N9rXh16r38N"
+    "address": "LM6jpRVE2TYoZKc1onms6d6N9rXh16r38N",
 }
 
 WALLET_2 = {
@@ -17,7 +20,7 @@ WALLET_2 = {
     "private_key": "515d395e680ed650ae79f765251905f17cdc5302fa1c9a3068129635494269e8",
     "public_key": "0360990d673eac182446d8029b31c887c015faf6caab3abbcb4e7cf9188b4ab41f",
     "verifying_key": "60990d673eac182446d8029b31c887c015faf6caab3abbcb4e7cf9188b4ab41fda282044b4278f35182064a94d636cb22ab420f161893538443a89e8671c7439",
-    "address": "LYvE9KJrNtfRCe4GDStet1SfgFARCFQJaQ"
+    "address": "LYvE9KJrNtfRCe4GDStet1SfgFARCFQJaQ",
 }
 
 WALLET_3 = {
@@ -28,7 +31,7 @@ WALLET_3 = {
     "private_key": "488bd983325b5f9d82d2164c16140a751c949480d385b4e1f546472efd4909b8",
     "public_key": "029b7333f46de7730c0df6ab37e5c7f351d9a5f75fdf432a6b60e3884f4e3a7432",
     "verifying_key": "9b7333f46de7730c0df6ab37e5c7f351d9a5f75fdf432a6b60e3884f4e3a74320e14776dd01a9a11a866b0f425e0b45c643777b1f8a5f7bd928b9f694e776410",
-    "address": "LKQrnkEPgbr7Sz2VssHnN8Pa9u1Vy2hREV"
+    "address": "LKQrnkEPgbr7Sz2VssHnN8Pa9u1Vy2hREV",
 }
 
 WALLET_4 = {
@@ -39,7 +42,7 @@ WALLET_4 = {
     "private_key": "51feaf1be3390ea9f483dec2d3507924efedcf31b94bf1ec6137174390ec747a",
     "public_key": "025096170fa5f96b7f0f8972436f0f80d6fae89f5618aafc790e275e92ad557230",
     "verifying_key": "5096170fa5f96b7f0f8972436f0f80d6fae89f5618aafc790e275e92ad5572309245950689d5dc4868349edae4d711cf524b1ebeb13eed36c1775e4983254f44",
-    "address": "LiGyzjMxjuUV1yufkH4CmMs7mwzXTFcFzU"
+    "address": "LiGyzjMxjuUV1yufkH4CmMs7mwzXTFcFzU",
 }
 
 WALLET_5 = {
@@ -50,7 +53,7 @@ WALLET_5 = {
     "private_key": "7331abf3d22e4262d3c386e5ec48e090d5952e88a7c640452dda96228c7a213d",
     "public_key": "03e473970b1b5debf711a334d39a9b46f76d667e2f504a9782be1218156462fb87",
     "verifying_key": "e473970b1b5debf711a334d39a9b46f76d667e2f504a9782be1218156462fb87360bc7f1179c569a6ba418c77d0372aac59002fad85c3d8bc4a910597523eced",
-    "address": "LPde2h9eFQg9oHob6VPLW6UFP7gfKS4fyx"
+    "address": "LPde2h9eFQg9oHob6VPLW6UFP7gfKS4fyx",
 }
 
 WALLET_6 = {
@@ -61,7 +64,7 @@ WALLET_6 = {
     "private_key": "2a2fc58aebaa88c2eda3eb79f5060d2b16067c4e3a5a637fc1d4a1343bcf21f5",
     "public_key": "033b16d415aa8d0de05800e7feaf359711a809941211508125c85506759df0a437",
     "verifying_key": "3b16d415aa8d0de05800e7feaf359711a809941211508125c85506759df0a4373588fd563c527c0a5486a14e1e08392f309944db7ca89639ae3c362f1966ef4b",
-    "address": "LPHJHnbBtMSJxX1NFYFgtju3PFLsGBbwM2"
+    "address": "LPHJHnbBtMSJxX1NFYFgtju3PFLsGBbwM2",
 }
 
 WALLET_7 = {
@@ -72,7 +75,7 @@ WALLET_7 = {
     "private_key": "1fbe2bcaf87a66485e43ffbea0928243062bc9f658628f77ea68f9449566fd2a",
     "public_key": "02abc26c152ca7eb5af7c4d2a881b351745fa37660757d642c94a6b59f520543d0",
     "verifying_key": "abc26c152ca7eb5af7c4d2a881b351745fa37660757d642c94a6b59f520543d0ba9ef8cbdd44277d9c337f2cef1aa7bad3274a1cb1389c2a9ba4dfae494536de",
-    "address": "Lg4TrBMTD6S9aM45RUx89ySXZ9uPd2Qewq"
+    "address": "Lg4TrBMTD6S9aM45RUx89ySXZ9uPd2Qewq",
 }
 
 WALLET_8 = {
@@ -83,7 +86,7 @@ WALLET_8 = {
     "private_key": "be173c87a007da962d6b6793d37d6e519de3ee2437581d55ce9617b11397b8ad",
     "public_key": "02d990ab2d2d5767aa5f1388f022459f30f3e1727f28c1c0ff773107fa35c824df",
     "verifying_key": "d990ab2d2d5767aa5f1388f022459f30f3e1727f28c1c0ff773107fa35c824dfd79bae7e87cc886c0ddb0cf247cd9b5379fda2bb281354aa57d9e1ee4fd590be",
-    "address": "LhmAsKzU5qoRKU5ZpAkKH9rKASu7KNuAs8"
+    "address": "LhmAsKzU5qoRKU5ZpAkKH9rKASu7KNuAs8",
 }
 
 WALLET_9 = {
@@ -94,7 +97,7 @@ WALLET_9 = {
     "private_key": "f0d0dcf64667918b5971fcc67839f61b2c590bf4e12dbb54b3868201fc9e0f3b",
     "public_key": "0325f2568b434cebc7703345998f8a97d369184477820571d978ac9395a294382a",
     "verifying_key": "25f2568b434cebc7703345998f8a97d369184477820571d978ac9395a294382a732638aff8958399761b83192cf1a4ce3b363ce2c35d9046793861226fc4c543",
-    "address": "LhPBVjLXFYHbEHrUx4YvPxCuV1fmxeuhn6"
+    "address": "LhPBVjLXFYHbEHrUx4YvPxCuV1fmxeuhn6",
 }
 
 WALLET_10 = {
@@ -105,7 +108,7 @@ WALLET_10 = {
     "private_key": "d3431ec02dae50c2cb6fcce6b5c1b296201266a63018bb9d50a25b37e4727772",
     "public_key": "03c3fa2334de54d17f302aa5de799b38365717191c83123067af40f603531d80c0",
     "verifying_key": "c3fa2334de54d17f302aa5de799b38365717191c83123067af40f603531d80c020cb2c67e905d574519a1a50b71c75b3f434e4ff458276f50e1ceaabd9d891b1",
-    "address": "LMFqQuoNJp6NMCv2e23ei6pUqGBeuX2zFr"
+    "address": "LMFqQuoNJp6NMCv2e23ei6pUqGBeuX2zFr",
 }
 
 

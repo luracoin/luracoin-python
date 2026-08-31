@@ -1,5 +1,11 @@
 # P2P Network Protocol Design
 
+> **Historical design record — superseded.** This file describes the original
+> P2P v1 proposal and is retained for context only. The implemented protocol is
+> P2P v2: `VERSION` includes `chain_id`, magic bytes are network-specific, no
+> public seeds are configured, and payload/peer limits are enforced. See
+> [`../../PROTOCOL.md`](../../PROTOCOL.md) for the current format.
+
 ## Overview
 
 Binary protocol over TCP with asyncio, seed nodes + peer discovery, sequential block sync.

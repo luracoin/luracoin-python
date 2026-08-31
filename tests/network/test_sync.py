@@ -3,26 +3,37 @@ import pytest
 from unittest.mock import MagicMock, patch
 from luracoin.network.sync import BlockSync, SYNC_BATCH_SIZE
 from luracoin.network.protocol import (
-    parse_getblocks_payload, parse_inv_payload, INV_BLOCK,
+    parse_getblocks_payload,
+    parse_inv_payload,
+    INV_BLOCK,
 )
 from luracoin.blocks import Block
 from luracoin.transactions import Transaction
 from luracoin.config import Config
 from luracoin.chain import Chain
+from luracoin.genesis import initialize_chain
 from luracoin.helpers import mining_reward
 from tests.constants import WALLET_1
 
 
 def _make_block(height=0, prev_hash=None, timestamp=1_623_168_442):
     coinbase = Transaction(
-        chain=1, nonce=0, fee=0, value=mining_reward(height),
-        from_address="0" * 34, to_address=WALLET_1["address"],
+        chain=1,
+        nonce=0,
+        fee=0,
+        value=mining_reward(height),
+        from_address="0" * 34,
+        to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
     return Block(
-        version=1, height=height, miner=WALLET_1["address"],
+        version=1,
+        height=height,
+        miner=WALLET_1["address"],
         prev_block_hash=prev_hash or "0" * 64,
-        timestamp=timestamp, bits=b"\x1f\x00\xff\xff", nonce=0,
+        timestamp=timestamp,
+        bits=b"\x1f\x00\xff\xff",
+        nonce=0,
         txns=[coinbase],
     )
 
@@ -30,6 +41,7 @@ def _make_block(height=0, prev_hash=None, timestamp=1_623_168_442):
 # ---------------------------------------------------------------------------
 # needs_sync
 # ---------------------------------------------------------------------------
+
 
 def test_needs_sync_when_behind():
     chain = Chain()
@@ -54,6 +66,7 @@ def test_needs_sync_when_ahead():
 # build_getblocks_request
 # ---------------------------------------------------------------------------
 
+
 def test_build_getblocks_request_from_genesis():
     chain = Chain()
     sync = BlockSync(chain, Block)
@@ -76,12 +89,14 @@ def test_build_getblocks_request_from_tip():
 # handle_block
 # ---------------------------------------------------------------------------
 
+
 def test_handle_block_accepts_valid_block():
     chain = Chain()
     sync = BlockSync(chain, Block)
 
     block = _make_block(height=0)
     from luracoin.pow import proof_of_work
+
     proof_of_work(block)
 
     block_data = block.serialize()
@@ -104,17 +119,23 @@ def test_handle_block_accepts_next_block():
     chain = Chain()
     sync = BlockSync(chain, Block)
 
-    # Save genesis first
-    genesis = _make_block(height=0)
-    genesis.save()
+    genesis = initialize_chain()
     assert chain.tip == 0
 
     # Now try block at height 1
-    block1 = _make_block(height=1, prev_hash=genesis.id, timestamp=1_623_168_500)
-    from luracoin.pow import proof_of_work
-    proof_of_work(block1)
-
-    result = sync.handle_block(block1.serialize())
+    block1 = _make_block(
+        height=1, prev_hash=genesis.id, timestamp=1_623_168_500
+    )
+    with (
+        patch.object(Block, "validate", return_value=True),
+        patch.object(
+            Block,
+            "save",
+            autospec=True,
+            side_effect=lambda block: chain.set_tip(block.height),
+        ),
+    ):
+        result = sync.handle_block(block1.serialize())
     assert result is True
     assert chain.tip == 1
 
@@ -123,8 +144,7 @@ def test_handle_block_rejects_wrong_height():
     chain = Chain()
     sync = BlockSync(chain, Block)
 
-    genesis = _make_block(height=0)
-    genesis.save()
+    initialize_chain()
 
     # Try to add block at height 5 (expected 1)
     block5 = _make_block(height=5, timestamp=1_623_168_500)
@@ -145,31 +165,37 @@ def test_handle_block_rejects_invalid_block():
     chain = Chain()
     sync = BlockSync(chain, Block)
 
-    genesis = _make_block(height=0)
-    genesis.save()
+    genesis = initialize_chain()
 
     # Block with excessive coinbase value
     bad_coinbase = Transaction(
-        chain=1, nonce=0, fee=0, value=999_999_999_999,
-        from_address="0" * 34, to_address=WALLET_1["address"],
+        chain=1,
+        nonce=0,
+        fee=0,
+        value=999_999_999_999,
+        from_address="0" * 34,
+        to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
     bad_block = Block(
-        version=1, height=1, miner=WALLET_1["address"],
-        prev_block_hash=genesis.id, timestamp=1_623_168_500,
-        bits=b"\x1f\x00\xff\xff", nonce=0,
+        version=1,
+        height=1,
+        miner=WALLET_1["address"],
+        prev_block_hash=genesis.id,
+        timestamp=1_623_168_500,
+        bits=b"\x1f\x00\xff\xff",
+        nonce=0,
         txns=[bad_coinbase],
     )
-    from luracoin.pow import proof_of_work
-    proof_of_work(bad_block)
-
-    result = sync.handle_block(bad_block.serialize())
+    with patch.object(Block, "validate", return_value=False):
+        result = sync.handle_block(bad_block.serialize())
     assert result is False
 
 
 # ---------------------------------------------------------------------------
 # build_block_inv
 # ---------------------------------------------------------------------------
+
 
 def test_build_block_inv():
     block_id = "ab" * 32
@@ -183,6 +209,7 @@ def test_build_block_inv():
 # ---------------------------------------------------------------------------
 # should_request_block
 # ---------------------------------------------------------------------------
+
 
 def test_should_request_block_returns_true():
     sync = BlockSync(Chain(), Block)

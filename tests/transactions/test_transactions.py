@@ -7,6 +7,7 @@ from luracoin.transactions import (
 )
 from luracoin.config import Config
 from luracoin.chain import Chain
+from tests.constants import WALLET_2
 
 
 def test_to_json():
@@ -87,7 +88,9 @@ def test_signatures(mocker):
     )
     PRIVATE_KEY_1_ADDRESS = "Lei7mVzEpwN9VnTEExFbv7KtZ3WWHKsjpz"
 
-    Chain().set_account(PRIVATE_KEY_1_ADDRESS, {"balance": 100_000_000, "nonce": 4_294_967_294})
+    Chain().set_account(
+        PRIVATE_KEY_1_ADDRESS, {"balance": 100_000_000, "nonce": 4_294_967_294}
+    )
 
     transaction_original = Transaction(
         chain=1,
@@ -95,7 +98,7 @@ def test_signatures(mocker):
         fee=57000,
         value=5_000_000,
         from_address=PRIVATE_KEY_1_ADDRESS,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        to_address=WALLET_2["address"],
     )
 
     transaction = transaction_original.sign(PRIVATE_KEY_1)

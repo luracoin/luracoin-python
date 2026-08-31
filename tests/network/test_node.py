@@ -5,11 +5,27 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from luracoin.network.node import Node
 from luracoin.network.peer import PeerConnection
 from luracoin.network.protocol import (
-    HEADER_SIZE, CMD_VERSION, CMD_VERACK, CMD_GETPEERS, CMD_PEERS,
-    CMD_GETBLOCKS, CMD_BLOCK, CMD_TX, CMD_INV, CMD_GETDATA,
-    CMD_PING, CMD_PONG, INV_BLOCK, INV_TX,
-    serialize_message, build_version_payload, build_peers_payload,
-    build_getblocks_payload, build_ping_payload, build_inv_payload,
+    HEADER_SIZE,
+    CMD_VERSION,
+    CMD_VERACK,
+    CMD_GETPEERS,
+    CMD_PEERS,
+    CMD_GETBLOCKS,
+    CMD_BLOCK,
+    CMD_TX,
+    CMD_INV,
+    CMD_GETDATA,
+    CMD_PING,
+    CMD_PONG,
+    INV_BLOCK,
+    INV_TX,
+    serialize_message,
+    build_version_payload,
+    build_peers_payload,
+    build_getblocks_payload,
+    build_ping_payload,
+    build_inv_payload,
+    parse_peers_payload,
     parse_ping_payload,
 )
 from luracoin.blocks import Block
@@ -26,7 +42,12 @@ def _make_mock_peer(host="10.0.0.1", port=9999, height=0):
     peer.port = port
     peer.address = (host, port)
     peer.connected = True
-    peer.version_info = {"version": 1, "height": height, "timestamp": 0, "listening_port": port}
+    peer.version_info = {
+        "version": 1,
+        "height": height,
+        "timestamp": 0,
+        "listening_port": port,
+    }
     peer.send = AsyncMock()
     peer.receive = AsyncMock(return_value=(None, None))
     peer.disconnect = AsyncMock()
@@ -37,6 +58,7 @@ def _make_mock_peer(host="10.0.0.1", port=9999, height=0):
 # ---------------------------------------------------------------------------
 # Node creation
 # ---------------------------------------------------------------------------
+
 
 def test_node_creation():
     node = Node(port=19999, seed_nodes=[("10.0.0.1", 19999)])
@@ -61,9 +83,11 @@ def test_node_connected_addresses_with_peers():
 # handle_message: GETPEERS / PEERS
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_handle_getpeers_sends_peers_response():
-    node = Node(port=19999, seed_nodes=[("10.0.0.2", 9999)])
+    hostname = "luracoin-fullnode-node"
+    node = Node(port=19999, seed_nodes=[(hostname, 9999)])
     peer = _make_mock_peer()
 
     await node.handle_message(peer, CMD_GETPEERS, b"")
@@ -71,6 +95,8 @@ async def test_handle_getpeers_sends_peers_response():
     peer.send.assert_called_once()
     call_args = peer.send.call_args
     assert call_args[0][0] == CMD_PEERS
+    assert parse_peers_payload(call_args[0][1]) == []
+    assert (hostname, 9999) in node.discovery.known_peers
 
 
 @pytest.mark.asyncio
@@ -88,6 +114,7 @@ async def test_handle_peers_adds_to_discovery():
 # ---------------------------------------------------------------------------
 # handle_message: PING
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_handle_ping_sends_pong():
@@ -108,26 +135,35 @@ async def test_handle_ping_sends_pong():
 # handle_message: GETBLOCKS
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_handle_getblocks_sends_blocks():
     node = Node(port=19999, seed_nodes=[])
 
     # Save a block
     coinbase = Transaction(
-        chain=1, nonce=0, fee=0, value=mining_reward(0),
-        from_address="0" * 34, to_address=WALLET_1["address"],
+        chain=1,
+        nonce=0,
+        fee=0,
+        value=mining_reward(0),
+        from_address="0" * 34,
+        to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
     block = Block(
-        version=1, height=0, miner=WALLET_1["address"],
-        prev_block_hash="0" * 64, timestamp=1_623_168_442,
-        bits=b"\x1f\x00\xff\xff", nonce=0, txns=[coinbase],
+        version=1,
+        height=0,
+        miner=WALLET_1["address"],
+        prev_block_hash="0" * 64,
+        timestamp=1_623_168_442,
+        bits=b"\x1f\x00\xff\xff",
+        nonce=0,
+        txns=[coinbase],
     )
-    block.save()
-
     peer = _make_mock_peer()
     payload = build_getblocks_payload(start_height=0, count=10)
-    await node.handle_message(peer, CMD_GETBLOCKS, payload)
+    with patch("luracoin.network.node.Block.get", side_effect=[block, None]):
+        await node.handle_message(peer, CMD_GETBLOCKS, payload)
 
     peer.send.assert_called_once()
     assert peer.send.call_args[0][0] == CMD_BLOCK
@@ -148,6 +184,7 @@ async def test_handle_getblocks_no_blocks_sends_nothing():
 # handle_message: TX
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_handle_tx_invalid_data():
     node = Node(port=19999, seed_nodes=[])
@@ -160,6 +197,7 @@ async def test_handle_tx_invalid_data():
 # ---------------------------------------------------------------------------
 # handle_message: INV
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_handle_inv_requests_unknown_data():
@@ -193,27 +231,40 @@ async def test_handle_inv_ignores_known():
 # handle_message: GETDATA
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_handle_getdata_sends_block():
     node = Node(port=19999, seed_nodes=[])
 
     coinbase = Transaction(
-        chain=1, nonce=0, fee=0, value=mining_reward(0),
-        from_address="0" * 34, to_address=WALLET_1["address"],
+        chain=1,
+        nonce=0,
+        fee=0,
+        value=mining_reward(0),
+        from_address="0" * 34,
+        to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
     block = Block(
-        version=1, height=0, miner=WALLET_1["address"],
-        prev_block_hash="0" * 64, timestamp=1_623_168_442,
-        bits=b"\x1f\x00\xff\xff", nonce=0, txns=[coinbase],
+        version=1,
+        height=0,
+        miner=WALLET_1["address"],
+        prev_block_hash="0" * 64,
+        timestamp=1_623_168_442,
+        bits=b"\x1f\x00\xff\xff",
+        nonce=0,
+        txns=[coinbase],
     )
-    block.save()
-
     peer = _make_mock_peer()
     import binascii
+
     hash_bytes = binascii.unhexlify(block.id)
     getdata_payload = build_inv_payload(INV_BLOCK, hash_bytes)
-    await node.handle_message(peer, CMD_GETDATA, getdata_payload)
+    with (
+        patch.object(node.chain, "get_block_height", return_value=0),
+        patch("luracoin.network.node.Block.get", return_value=block),
+    ):
+        await node.handle_message(peer, CMD_GETDATA, getdata_payload)
 
     peer.send.assert_called_once()
     assert peer.send.call_args[0][0] == CMD_BLOCK
@@ -235,6 +286,7 @@ async def test_handle_getdata_unknown_block():
 # broadcast_block
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_broadcast_block_sends_inv_to_all_peers():
     node = Node(port=19999, seed_nodes=[])
@@ -244,18 +296,28 @@ async def test_broadcast_block_sends_inv_to_all_peers():
     node.peers[("10.0.0.2", 9999)] = peer2
 
     coinbase = Transaction(
-        chain=1, nonce=0, fee=0, value=50000,
-        from_address="0" * 34, to_address=WALLET_1["address"],
+        chain=1,
+        nonce=0,
+        fee=0,
+        value=50000,
+        from_address="0" * 34,
+        to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
     block = Block(
-        version=1, height=0, miner=WALLET_1["address"],
-        prev_block_hash="0" * 64, timestamp=1_623_168_442,
-        bits=b"\x1f\x00\xff\xff", nonce=0, txns=[coinbase],
+        version=1,
+        height=0,
+        miner=WALLET_1["address"],
+        prev_block_hash="0" * 64,
+        timestamp=1_623_168_442,
+        bits=b"\x1f\x00\xff\xff",
+        nonce=0,
+        txns=[coinbase],
     )
 
-    await node.broadcast_block(block)
+    relay_count = await node.broadcast_block(block)
 
+    assert relay_count == 2
     peer1.send.assert_called_once()
     peer2.send.assert_called_once()
     assert peer1.send.call_args[0][0] == CMD_INV
@@ -266,25 +328,36 @@ async def test_broadcast_block_sends_inv_to_all_peers():
 async def test_broadcast_block_adds_to_known_invs():
     node = Node(port=19999, seed_nodes=[])
     coinbase = Transaction(
-        chain=1, nonce=0, fee=0, value=50000,
-        from_address="0" * 34, to_address=WALLET_1["address"],
+        chain=1,
+        nonce=0,
+        fee=0,
+        value=50000,
+        from_address="0" * 34,
+        to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
     block = Block(
-        version=1, height=0, miner=WALLET_1["address"],
-        prev_block_hash="0" * 64, timestamp=1_623_168_442,
-        bits=b"\x1f\x00\xff\xff", nonce=0, txns=[coinbase],
+        version=1,
+        height=0,
+        miner=WALLET_1["address"],
+        prev_block_hash="0" * 64,
+        timestamp=1_623_168_442,
+        bits=b"\x1f\x00\xff\xff",
+        nonce=0,
+        txns=[coinbase],
     )
 
     await node.broadcast_block(block)
 
     import binascii
+
     assert binascii.unhexlify(block.id) in node.known_invs
 
 
 # ---------------------------------------------------------------------------
 # broadcast_tx
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_broadcast_tx_sends_to_all_peers():
@@ -295,13 +368,18 @@ async def test_broadcast_tx_sends_to_all_peers():
     node.peers[("10.0.0.2", 9999)] = peer2
 
     tx = Transaction(
-        chain=1, nonce=0, fee=0, value=50000,
-        from_address="0" * 34, to_address=WALLET_1["address"],
+        chain=1,
+        nonce=0,
+        fee=0,
+        value=50000,
+        from_address="0" * 34,
+        to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
 
-    await node.broadcast_tx(tx)
+    relay_count = await node.broadcast_tx(tx)
 
+    assert relay_count == 2
     peer1.send.assert_called_once()
     peer2.send.assert_called_once()
     assert peer1.send.call_args[0][0] == CMD_TX
@@ -310,6 +388,7 @@ async def test_broadcast_tx_sends_to_all_peers():
 # ---------------------------------------------------------------------------
 # connect_to_peer
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_connect_to_peer_already_connected():
@@ -334,7 +413,9 @@ async def test_connect_to_peer_max_peers():
 async def test_connect_to_peer_connection_refused():
     node = Node(port=19999, seed_nodes=[])
 
-    with patch("luracoin.network.node.asyncio.open_connection", new_callable=AsyncMock) as mock_conn:
+    with patch(
+        "luracoin.network.node.asyncio.open_connection", new_callable=AsyncMock
+    ) as mock_conn:
         mock_conn.side_effect = OSError("Connection refused")
         result = await node.connect_to_peer("10.0.0.1", 9999)
 
@@ -344,6 +425,7 @@ async def test_connect_to_peer_connection_refused():
 # ---------------------------------------------------------------------------
 # ping_peers
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_ping_peers_removes_dead():
@@ -366,6 +448,7 @@ async def test_ping_peers_removes_dead():
 # ---------------------------------------------------------------------------
 # stop
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_stop_disconnects_all_peers():

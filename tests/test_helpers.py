@@ -1,6 +1,10 @@
-import pytest
 from luracoin.config import Config
-from luracoin.helpers import bits_to_target, is_hex, bytes_to_signing_key, mining_reward
+from luracoin.helpers import (
+    bits_to_target,
+    is_hex,
+    bytes_to_signing_key,
+    mining_reward,
+)
 
 
 def test_bytes_to_signing_key(blockchain):
@@ -10,13 +14,13 @@ def test_bytes_to_signing_key(blockchain):
     )
 
     private_key = bytes_to_signing_key(private_key=private_key_original)
-    verifying_key = private_key.get_verifying_key()
+    verifying_key = private_key.public_key
 
-    assert private_key.to_string() == private_key_original
-    assert private_key.to_string().hex() == (
+    assert private_key.secret == private_key_original
+    assert private_key.secret.hex() == (
         "4a52683379f3cf678dea2e91eb3fede37504845b529c97878fc6498b2877d5b1"
     )
-    assert verifying_key.to_string().hex() == (
+    assert verifying_key.format(compressed=False)[1:].hex() == (
         "5c440bc46d316dbb244bb57e39142f13a1ca7e02d27d46e5cf90fdb98eaf5c1eab11"
         "c4af165e4ce3eb0652f8d937620804fe15201c00a7466f56237810988db1"
     )
@@ -78,9 +82,18 @@ def test_is_hex() -> None:
 def test_sha256d() -> None:
     from luracoin.helpers import sha256d
 
-    assert sha256d("hello") == "9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"
-    assert sha256d(b"hello") == "9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"
-    assert sha256d("") == "5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456"
+    assert (
+        sha256d("hello")
+        == "9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"
+    )
+    assert (
+        sha256d(b"hello")
+        == "9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"
+    )
+    assert (
+        sha256d("")
+        == "5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456"
+    )
 
 
 def test_bits_to_target() -> None:
@@ -101,18 +114,11 @@ def test_bits_to_target() -> None:
     )
 
 
-
 def test_mining_reward():
-    assert mining_reward(height=0) == 5000000000
-    assert mining_reward(height=1000) == 5000000000
-    assert mining_reward(height=259200) == 2500000000
-    assert mining_reward(height=300_000) == 2500000000
-    assert mining_reward(height=800_000) == 1250000000
-    assert mining_reward(height=900_000) == 1250000000
-    assert mining_reward(height=1_000_000) == 1250000000
-    assert mining_reward(height=1_500_000) == 833333333
-    assert mining_reward(height=2_000_000) == 625000000
-    assert mining_reward(height=2_500_000) == 500000000
-    assert mining_reward(height=3_000_000) == 416666666
-    assert mining_reward(height=6_000_000) == 208333333
-    assert mining_reward(height=12_000_000) == 106382978
+    halving = Config.HALVING_BLOCKS
+    assert mining_reward(height=0) == Config.BLOCK_REWARD
+    assert mining_reward(height=halving - 1) == Config.BLOCK_REWARD
+    assert mining_reward(height=halving) == Config.BLOCK_REWARD // 2
+    assert mining_reward(height=5 * halving) == Config.BLOCK_REWARD // 32
+    assert mining_reward(height=6 * halving) == Config.TAIL_REWARD
+    assert mining_reward(height=100 * halving) == Config.TAIL_REWARD

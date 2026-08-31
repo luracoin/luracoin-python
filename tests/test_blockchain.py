@@ -1,78 +1,56 @@
-from luracoin.config import Config
 from luracoin.blocks import Block
-from luracoin.transactions import Transaction
 from luracoin.chain import Chain
+from luracoin.config import Config
+from luracoin.genesis import initialize_chain
 from luracoin.helpers import mining_reward
-from tests.constants import WALLET_1
+from luracoin.transactions import Transaction
+from tests.constants import WALLET_1, WALLET_2
 
 
-def test_block_validate_rejects_excess_coinbase():
-    """Coinbase value exceeding reward + fees should fail validation."""
+def _next_block(miner, coinbase_value):
+    genesis = initialize_chain()
     coinbase = Transaction(
-        chain=1, nonce=0, fee=0,
-        value=999_999_999_999,
+        chain=Config.CHAIN_ID,
+        nonce=1,
+        fee=0,
+        value=coinbase_value,
         from_address="0" * 34,
-        to_address=WALLET_1["address"],
+        to_address=miner,
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
-
-    block = Block(
-        version=1, height=0, miner=WALLET_1["address"],
-        prev_block_hash="0" * 64, timestamp=1_623_168_442,
-        bits=b"\x1f\x00\xff\xff", nonce=0,
+    return Block(
+        version=1,
+        height=1,
+        miner=miner,
+        prev_block_hash=genesis.id,
+        timestamp=genesis.timestamp + 1,
+        bits=Block.expected_bits(1),
+        nonce=0,
         txns=[coinbase],
     )
+
+
+def test_block_validate_rejects_excess_coinbase(monkeypatch):
+    """Coinbase value exceeding reward plus fees fails validation."""
+    block = _next_block(WALLET_1["address"], 999_999_999_999)
+    monkeypatch.setattr(Block, "is_valid_proof", lambda _block: True)
 
     assert block.validate() is False
 
 
-def test_block_validate_accepts_valid_coinbase():
-    """Coinbase with exactly mining_reward should pass after PoW."""
-    from luracoin.pow import proof_of_work
+def test_block_validate_accepts_valid_coinbase(monkeypatch):
+    """Coinbase with exactly the height subsidy passes validation."""
+    block = _next_block(WALLET_1["address"], mining_reward(1))
+    monkeypatch.setattr(Block, "is_valid_proof", lambda _block: True)
 
-    reward = mining_reward(0)
-
-    coinbase = Transaction(
-        chain=1, nonce=0, fee=0,
-        value=reward,
-        from_address="0" * 34,
-        to_address=WALLET_1["address"],
-        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
-    )
-
-    block = Block(
-        version=1, height=0, miner=WALLET_1["address"],
-        prev_block_hash="0" * 64, timestamp=1_623_168_442,
-        bits=b"\x1f\x00\xff\xff", nonce=0,
-        txns=[coinbase],
-    )
-
-    proof_of_work(block)
     assert block.validate() is True
 
 
-def test_block_save_credits_miner():
-    """Block.save() should credit mining reward to miner's account."""
-    chain = Chain()
-
-    coinbase = Transaction(
-        chain=1, nonce=0, fee=0,
-        value=mining_reward(0),
-        from_address="0" * 34,
-        to_address=WALLET_1["address"],
-        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
-    )
-
-    block = Block(
-        version=1, height=0, miner=WALLET_1["address"],
-        prev_block_hash="0" * 64, timestamp=1_623_168_442,
-        bits=b"\x1f\x00\xff\xff", nonce=0,
-        txns=[coinbase],
-    )
-
+def test_block_save_credits_miner_once(monkeypatch):
+    """Block.save() credits exactly the single coinbase output."""
+    block = _next_block(WALLET_2["address"], mining_reward(1))
+    monkeypatch.setattr(Block, "is_valid_proof", lambda _block: True)
     block.save()
 
-    account = chain.get_account(WALLET_1["address"])
-    # Miner gets: coinbase value + mining reward
-    expected = mining_reward(0) + mining_reward(0)
-    assert account["balance"] == expected
+    account = Chain().get_account(WALLET_2["address"])
+    assert account == {"balance": mining_reward(1), "nonce": 0}

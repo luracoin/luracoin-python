@@ -1,25 +1,46 @@
+from binascii import unhexlify
 from unittest.mock import patch, MagicMock
+
 from luracoin.blocks import Block
+from luracoin.chain import Chain
 from luracoin.transactions import Transaction
 from luracoin.config import Config
-from luracoin.helpers import mining_reward
-from tests.constants import WALLET_1, WALLET_2
+from tests.constants import WALLET_1, WALLET_2, WALLET_3
 
 
-def _make_serialized_tx(nonce, fee, value):
-    tx = Transaction(
-        chain=1, nonce=nonce, fee=fee, value=value,
-        from_address="0" * 34, to_address=WALLET_1["address"],
-        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
+def _make_serialized_tx(wallet, nonce, fee, value):
+    recipient = (
+        WALLET_1["address"]
+        if wallet["address"] != WALLET_1["address"]
+        else WALLET_2["address"]
     )
-    return tx.serialize()
+    tx = Transaction(
+        chain=Config.CHAIN_ID,
+        nonce=nonce,
+        fee=fee,
+        value=value,
+        from_address=wallet["address"],
+        to_address=recipient,
+    )
+    return tx.sign(unhexlify(wallet["private_key"])).serialize()
 
 
 def test_select_transactions_sorts_by_fee_descending():
     """select_transactions should pick transactions sorted by fee (highest first)."""
-    tx_low = _make_serialized_tx(nonce=1, fee=100, value=1000)
-    tx_high = _make_serialized_tx(nonce=2, fee=9999, value=2000)
-    tx_mid = _make_serialized_tx(nonce=3, fee=5000, value=3000)
+    chain = Chain()
+    for wallet in (WALLET_1, WALLET_2, WALLET_3):
+        chain.set_account(
+            wallet["address"], {"balance": 1_000_000, "nonce": 0}
+        )
+
+    # Independent senders keep fee ordering independent from nonce ordering.
+    tx_low = _make_serialized_tx(WALLET_1, nonce=1, fee=100, value=1000)
+    tx_high = _make_serialized_tx(
+        WALLET_2, nonce=1, fee=9999, value=2000
+    )
+    tx_mid = _make_serialized_tx(
+        WALLET_3, nonce=1, fee=5000, value=3000
+    )
 
     mock_redis = MagicMock()
     mock_redis.keys.return_value = [b"tx1", b"tx2", b"tx3"]
@@ -40,9 +61,15 @@ def test_select_transactions_respects_max_block_size():
     # At height 0, max_block_size = 10_000, header = 118
     # Available = 10_000 - 118 = 9_882 bytes
     # Each tx = 213 bytes => max ~46 txns
-    serialized_txns = []
-    for i in range(50):
-        serialized_txns.append(_make_serialized_tx(nonce=i, fee=100, value=1000 + i))
+    Chain().set_account(
+        WALLET_1["address"], {"balance": 1_000_000, "nonce": 0}
+    )
+    serialized_txns = [
+        _make_serialized_tx(
+            WALLET_1, nonce=i + 1, fee=100, value=1000 + i
+        )
+        for i in range(50)
+    ]
 
     mock_redis = MagicMock()
     mock_redis.keys.return_value = [f"tx{i}".encode() for i in range(50)]
@@ -74,15 +101,22 @@ def test_select_transactions_empty_mempool():
 def test_clean_mempool_deletes_transaction_ids():
     """clean_mempool should delete each transaction's id from Redis."""
     tx1 = Transaction(
-        chain=1, nonce=0, fee=0, value=50000,
-        from_address="0" * 34, to_address=WALLET_1["address"],
+        chain=Config.CHAIN_ID,
+        nonce=0,
+        fee=0,
+        value=50000,
+        from_address="0" * 34,
+        to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
     tx2 = Transaction(
-        chain=1, nonce=1, fee=100, value=1000,
-        from_address="0" * 34, to_address=WALLET_1["address"],
-        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
-    )
+        chain=Config.CHAIN_ID,
+        nonce=1,
+        fee=100,
+        value=1000,
+        from_address=WALLET_2["address"],
+        to_address=WALLET_1["address"],
+    ).sign(unhexlify(WALLET_2["private_key"]))
 
     mock_redis = MagicMock()
 
@@ -95,10 +129,8 @@ def test_clean_mempool_deletes_transaction_ids():
         )
         block.clean_mempool()
 
-    assert mock_redis.delete.call_count == 2
-    deleted_ids = [call[0][0] for call in mock_redis.delete.call_args_list]
-    assert tx1.id in deleted_ids
-    assert tx2.id in deleted_ids
+    # Coinbase transactions were never admitted to the mempool.
+    mock_redis.delete.assert_called_once_with(tx2.id, tx2.mempool_nonce_key)
 
 
 def test_clean_mempool_handles_connection_error():
@@ -106,10 +138,13 @@ def test_clean_mempool_handles_connection_error():
     import redis as redis_lib
 
     tx = Transaction(
-        chain=1, nonce=0, fee=0, value=50000,
-        from_address="0" * 34, to_address=WALLET_1["address"],
-        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
-    )
+        chain=Config.CHAIN_ID,
+        nonce=1,
+        fee=100,
+        value=1000,
+        from_address=WALLET_2["address"],
+        to_address=WALLET_1["address"],
+    ).sign(unhexlify(WALLET_2["private_key"]))
 
     mock_redis = MagicMock()
     mock_redis.delete.side_effect = redis_lib.exceptions.ConnectionError("down")

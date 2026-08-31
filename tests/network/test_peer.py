@@ -4,9 +4,16 @@ import time
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from luracoin.network.peer import PeerConnection
+from luracoin.config import Config
 from luracoin.network.protocol import (
-    HEADER_SIZE, CMD_VERSION, CMD_VERACK, CMD_PING, CMD_PONG,
-    serialize_message, build_version_payload, build_ping_payload,
+    HEADER_SIZE,
+    CMD_VERSION,
+    CMD_VERACK,
+    CMD_PING,
+    CMD_PONG,
+    serialize_message,
+    build_version_payload,
+    build_ping_payload,
 )
 
 
@@ -31,6 +38,7 @@ def _msg_to_reads(msg: bytes):
 # Basic properties
 # ---------------------------------------------------------------------------
 
+
 def test_peer_address():
     reader, writer = _make_mock_streams()
     peer = PeerConnection(reader, writer, "10.0.0.1", 9999)
@@ -49,6 +57,7 @@ def test_peer_inbound():
 # send()
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_send_writes_full_message():
     reader, writer = _make_mock_streams()
@@ -58,8 +67,20 @@ async def test_send_writes_full_message():
 
     writer.write.assert_called_once()
     sent_data = writer.write.call_args[0][0]
-    assert sent_data[:4] == b"\xbaw\xd8\x9f"  # magic bytes
+    assert sent_data[:4] == Config.MAGIC_BYTES
     assert sent_data[4:16] == CMD_PING
+
+
+@pytest.mark.asyncio
+async def test_send_disconnects_when_socket_backpressure_times_out():
+    reader, writer = _make_mock_streams()
+    writer.drain.side_effect = asyncio.TimeoutError
+    peer = PeerConnection(reader, writer, "10.0.0.1", 9999)
+
+    with pytest.raises(ConnectionError, match="timed out"):
+        await peer.send(CMD_PING, build_ping_payload(42))
+
+    assert peer.connected is False
 
 
 @pytest.mark.asyncio
@@ -76,6 +97,7 @@ async def test_send_empty_payload():
 # ---------------------------------------------------------------------------
 # receive()
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_receive_valid_message():
@@ -181,6 +203,7 @@ async def test_receive_updates_last_seen():
 # handshake()
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_outbound_handshake_success():
     reader, writer = _make_mock_streams()
@@ -197,7 +220,9 @@ async def test_outbound_handshake_success():
     )
 
     peer = PeerConnection(reader, writer, "10.0.0.1", 9999, inbound=False)
-    result = await peer.handshake(local_version=1, local_height=10, local_port=9999)
+    result = await peer.handshake(
+        local_version=1, local_height=10, local_port=9999
+    )
 
     assert result is True
     assert peer.version_info["height"] == 50
@@ -212,7 +237,9 @@ async def test_outbound_handshake_no_version_fails():
     reader.readexactly = AsyncMock(return_value=verack_msg[:HEADER_SIZE])
 
     peer = PeerConnection(reader, writer, "10.0.0.1", 9999, inbound=False)
-    result = await peer.handshake(local_version=1, local_height=0, local_port=9999)
+    result = await peer.handshake(
+        local_version=1, local_height=0, local_port=9999
+    )
 
     assert result is False
 
@@ -233,7 +260,9 @@ async def test_outbound_handshake_no_verack_fails():
     )
 
     peer = PeerConnection(reader, writer, "10.0.0.1", 9999, inbound=False)
-    result = await peer.handshake(local_version=1, local_height=0, local_port=9999)
+    result = await peer.handshake(
+        local_version=1, local_height=0, local_port=9999
+    )
 
     assert result is False
 
@@ -254,7 +283,9 @@ async def test_inbound_handshake_success():
     )
 
     peer = PeerConnection(reader, writer, "10.0.0.1", 8888, inbound=True)
-    result = await peer.handshake(local_version=1, local_height=5, local_port=9999)
+    result = await peer.handshake(
+        local_version=1, local_height=5, local_port=9999
+    )
 
     assert result is True
     assert peer.version_info["height"] == 100
@@ -267,7 +298,9 @@ async def test_inbound_handshake_no_version_fails():
     reader.readexactly = AsyncMock(side_effect=asyncio.TimeoutError)
 
     peer = PeerConnection(reader, writer, "10.0.0.1", 9999, inbound=True)
-    result = await peer.handshake(local_version=1, local_height=0, local_port=9999)
+    result = await peer.handshake(
+        local_version=1, local_height=0, local_port=9999
+    )
 
     assert result is False
 
@@ -275,6 +308,7 @@ async def test_inbound_handshake_no_version_fails():
 # ---------------------------------------------------------------------------
 # send_ping()
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_send_ping_success():
@@ -322,6 +356,7 @@ async def test_send_ping_timeout_fails():
 # ---------------------------------------------------------------------------
 # disconnect()
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_disconnect():

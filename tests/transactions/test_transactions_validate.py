@@ -26,7 +26,9 @@ def test_validate_signatures(mocker):
     """
     Test to check that the signatures are valid.
     """
-    Chain().set_account(PRIVATE_KEY_1_ADDRESS, {"balance": 100_000_000, "nonce": 4_294_967_294})
+    Chain().set_account(
+        PRIVATE_KEY_1_ADDRESS, {"balance": 100_000_000, "nonce": 4_294_967_294}
+    )
 
     transaction_original = Transaction(
         chain=1,
@@ -34,7 +36,7 @@ def test_validate_signatures(mocker):
         fee=57000,
         value=5_000_000,
         from_address=PRIVATE_KEY_1_ADDRESS,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        to_address=WALLET_2["address"],
     )
 
     transaction = transaction_original.sign(PRIVATE_KEY_1)
@@ -67,15 +69,17 @@ def test_modify_transaction_after_signing(mocker):
     """
     Test to check that you can't modify a transaction after signing it.
     """
-    Chain().set_account(PRIVATE_KEY_1_ADDRESS, {"balance": 100_000_000, "nonce": 4_294_967_294})
+    Chain().set_account(
+        PRIVATE_KEY_1_ADDRESS, {"balance": 100_000_000, "nonce": 4_294_967_294}
+    )
 
     transaction_original = Transaction(
-        chain=0,
+        chain=Config.CHAIN_ID,
         nonce=4_294_967_295,
         fee=57000,
         value=5_000_000,
         from_address=PRIVATE_KEY_1_ADDRESS,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        to_address=WALLET_2["address"],
     )
 
     transaction = transaction_original.sign(PRIVATE_KEY_1)
@@ -98,7 +102,7 @@ def test_chain(mocker):
         fee=57000,
         value=5_000_000,
         from_address="0" * 34,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        to_address=WALLET_2["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
 
@@ -108,7 +112,7 @@ def test_chain(mocker):
     ):
         transaction.validate(raise_exception=True)
 
-    transaction.chain = 15
+    transaction.chain = Config.CHAIN_ID
     assert transaction.validate() == True
     assert transaction.validate(raise_exception=True) == True
 
@@ -125,12 +129,12 @@ def test_nonce(mocker):
     Test to validate the field 'nonce' from a transaction
     """
     transaction = Transaction(
-        chain=0,
+        chain=Config.CHAIN_ID,
         nonce=14_294_967_296,
         fee=57000,
         value=5_000_000,
         from_address="0" * 34,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        to_address=WALLET_2["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
 
@@ -157,12 +161,12 @@ def test_fee(mocker):
     Test to validate the field 'fee' from a transaction
     """
     transaction = Transaction(
-        chain=0,
+        chain=Config.CHAIN_ID,
         nonce=0,
         fee=4_294_967_296,
         value=5_000_000,
         from_address="0" * 34,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        to_address=WALLET_2["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
 
@@ -189,12 +193,12 @@ def test_value(mocker):
     Test to validate the field 'value' from a transaction
     """
     transaction = Transaction(
-        chain=0,
+        chain=Config.CHAIN_ID,
         nonce=0,
         fee=0,
         value=18_446_744_073_709_551_616,
         from_address="0" * 34,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        to_address=WALLET_2["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
 
@@ -237,7 +241,7 @@ def test_to_address(mocker):
         fee=50,
         value=5_000_000,
         from_address="0" * 34,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        to_address=WALLET_2["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
 
@@ -261,8 +265,8 @@ def test_unlock_sig(mocker):
         nonce=10,
         fee=50,
         value=5_000_000,
-        from_address="0" * 34,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        from_address=WALLET_1["address"],
+        to_address=WALLET_2["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
 
@@ -298,7 +302,9 @@ def test_staking_transaction():
     ):
         transaction.validate_fields(raise_exception=True)
 
-    Chain().set_account(WALLET_1["address"], {"balance": 100_000_000, "nonce": 4_294_967_294})
+    Chain().set_account(
+        WALLET_1["address"], {"balance": 100_000_000, "nonce": 4_294_967_294}
+    )
 
     transaction = Transaction(
         chain=1,
@@ -311,4 +317,8 @@ def test_staking_transaction():
 
     transaction = transaction.sign(unhexlify(WALLET_1["private_key"]))
 
-    assert transaction.validate() is True
+    assert transaction.validate() is False
+    with pytest.raises(
+        TransactionNotValid, match=errors.TRANSACTION_INVALID_STAKING
+    ):
+        transaction.validate_fields(raise_exception=True)

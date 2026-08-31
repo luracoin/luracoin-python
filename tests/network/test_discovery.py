@@ -38,6 +38,18 @@ def test_add_peer_refuses_self():
     assert d.add_peer("127.0.0.1", 8888) is True
 
 
+def test_observed_local_socket_address_removes_and_rejects_self_candidate():
+    d = PeerDiscovery([], max_peers=8, local_port=9999)
+    assert d.add_peer("172.18.0.4", 9999) is True
+
+    assert d.add_local_address("172.18.0.4") is True
+    assert ("172.18.0.4", 9999) not in d.known_peers
+    assert d.add_peer("172.18.0.4", 9999) is False
+
+    # A different local service is not this P2P listener.
+    assert d.add_peer("172.18.0.4", 9998) is True
+
+
 def test_remove_peer():
     d = PeerDiscovery([("10.0.0.1", 9999)], max_peers=8)
     d.remove_peer("10.0.0.1", 9999)
@@ -73,6 +85,43 @@ def test_build_peers_response():
     parsed = parse_peers_payload(payload)
     assert len(parsed) == 2
     assert set(parsed) == {("10.0.0.1", 9999), ("10.0.0.2", 8888)}
+
+
+def test_hostname_seed_is_kept_for_connect_but_not_peer_advertisement():
+    hostname = "luracoin-fullnode-node"
+    d = PeerDiscovery([(hostname, 9999), ("10.0.0.2", 8888)], max_peers=8)
+
+    assert (hostname, 9999) in d.known_peers
+    assert (hostname, 9999) in d.get_peers_to_connect(set())
+    assert parse_peers_payload(d.build_peers_response()) == [
+        ("10.0.0.2", 8888)
+    ]
+
+
+def test_build_peers_response_filters_invalid_connection_endpoints():
+    d = PeerDiscovery([], max_peers=8)
+    d.known_peers.update(
+        {
+            ("999.999.999.999", 9999),
+            ("0.0.0.0", 9999),
+            ("224.0.0.1", 9999),
+            ("10.0.0.2", 0),
+            ("10.0.0.3", 70_000),
+        }
+    )
+
+    assert parse_peers_payload(d.build_peers_response()) == []
+
+
+def test_add_peer_rejects_invalid_endpoints_but_accepts_dns_names():
+    d = PeerDiscovery([], max_peers=8)
+
+    assert d.add_peer("luracoin-fullnode-node", 9999) is True
+    assert d.add_peer("999.999.999.999", 9999) is False
+    assert d.add_peer("0.0.0.0", 8888) is False
+    assert d.add_peer("224.0.0.1", 9999) is False
+    assert d.add_peer("10.0.0.1", 0) is False
+    assert d.add_peer("10.0.0.1", 70_000) is False
 
 
 def test_build_peers_response_respects_max():

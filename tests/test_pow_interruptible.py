@@ -8,14 +8,23 @@ from tests.constants import WALLET_1
 
 def _make_block(bits=b"\x1f\x00\xff\xff"):
     coinbase = Transaction(
-        chain=1, nonce=0, fee=0, value=50000,
-        from_address="0" * 34, to_address=WALLET_1["address"],
+        chain=1,
+        nonce=0,
+        fee=0,
+        value=50000,
+        from_address="0" * 34,
+        to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
     return Block(
-        version=1, height=0, miner=WALLET_1["address"],
-        prev_block_hash="0" * 64, timestamp=1_623_168_442,
-        bits=bits, nonce=0, txns=[coinbase],
+        version=1,
+        height=0,
+        miner=WALLET_1["address"],
+        prev_block_hash="0" * 64,
+        timestamp=1_623_168_442,
+        bits=bits,
+        nonce=0,
+        txns=[coinbase],
     )
 
 
@@ -52,6 +61,7 @@ def test_pow_stop_event_set_during_mining():
     def set_after_delay():
         # Set event after a tiny delay
         import time
+
         time.sleep(0.01)
         event.set()
 
@@ -62,3 +72,16 @@ def test_pow_stop_event_set_during_mining():
     timer.join()
 
     assert nonce == -1
+
+
+def test_pow_exhaustion_does_not_overflow_consensus_nonce():
+    class NeverValidBlock:
+        nonce = 0xFFFFFFFF
+
+        @staticmethod
+        def is_valid_proof():
+            return False
+
+    block = NeverValidBlock()
+    assert proof_of_work(block, starting_at=0xFFFFFFFF) == -1
+    assert block.nonce == 0xFFFFFFFF

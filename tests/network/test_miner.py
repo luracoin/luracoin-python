@@ -4,16 +4,15 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from luracoin.network.miner import MiningNode
 from luracoin.blocks import Block
-from luracoin.transactions import Transaction
 from luracoin.config import Config
-from luracoin.chain import Chain
+from luracoin.genesis import initialize_chain
 from luracoin.helpers import mining_reward
 from tests.constants import WALLET_1
-
 
 # ---------------------------------------------------------------------------
 # MiningNode construction
 # ---------------------------------------------------------------------------
+
 
 def test_mining_node_creation():
     node = MiningNode(address=WALLET_1["address"], port=19999, seed_nodes=[])
@@ -25,6 +24,7 @@ def test_mining_node_creation():
 # ---------------------------------------------------------------------------
 # _build_block_template
 # ---------------------------------------------------------------------------
+
 
 def test_build_block_template_first_block():
     miner = MiningNode(address=WALLET_1["address"], port=19999, seed_nodes=[])
@@ -42,20 +42,7 @@ def test_build_block_template_first_block():
 
 
 def test_build_block_template_after_genesis():
-    chain = Chain()
-
-    # Save a genesis block
-    coinbase = Transaction(
-        chain=1, nonce=0, fee=0, value=mining_reward(0),
-        from_address="0" * 34, to_address=WALLET_1["address"],
-        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
-    )
-    genesis = Block(
-        version=1, height=0, miner=WALLET_1["address"],
-        prev_block_hash="0" * 64, timestamp=1_623_168_442,
-        bits=b"\x1f\x00\xff\xff", nonce=0, txns=[coinbase],
-    )
-    genesis.save()
+    genesis = initialize_chain()
 
     miner = MiningNode(address=WALLET_1["address"], port=19999, seed_nodes=[])
     block = miner._build_block_template()
@@ -67,6 +54,7 @@ def test_build_block_template_after_genesis():
 # ---------------------------------------------------------------------------
 # _mine_block (interruptible PoW)
 # ---------------------------------------------------------------------------
+
 
 def test_mine_block_succeeds():
     """PoW with easy difficulty should succeed."""
@@ -94,6 +82,7 @@ def test_mine_block_interrupted():
 # _on_peer_block callback
 # ---------------------------------------------------------------------------
 
+
 def test_on_peer_block_sets_stop_event():
     miner = MiningNode(address=WALLET_1["address"], port=19999, seed_nodes=[])
     assert not miner._stop_mining_event.is_set()
@@ -102,9 +91,19 @@ def test_on_peer_block_sets_stop_event():
     assert miner._stop_mining_event.is_set()
 
 
+def test_on_sync_needed_interrupts_stale_mining():
+    miner = MiningNode(address=WALLET_1["address"], port=19999, seed_nodes=[])
+    assert not miner._stop_mining_event.is_set()
+
+    miner._on_sync_needed()
+
+    assert miner._stop_mining_event.is_set()
+
+
 # ---------------------------------------------------------------------------
 # stop()
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_stop_sets_running_false():
@@ -123,6 +122,7 @@ async def test_stop_sets_running_false():
 # Node callback integration
 # ---------------------------------------------------------------------------
 
+
 def test_node_on_new_block_callback_is_set_on_start():
     """After constructing MiningNode, on_new_block should be None.
     It gets set during start(), but we can test the wiring manually."""
@@ -139,42 +139,19 @@ def test_node_on_new_block_callback_is_set_on_start():
 # Node._handle_block calls on_new_block
 # ---------------------------------------------------------------------------
 
+
 def test_node_handle_block_triggers_callback():
     """When node receives a valid block, on_new_block callback fires."""
     from luracoin.network.node import Node
-    from luracoin.pow import proof_of_work
 
     node = Node(port=19999, seed_nodes=[])
     callback_called = []
     node.on_new_block = lambda: callback_called.append(True)
 
-    # Save genesis so handle_block expects height=1
-    coinbase = Transaction(
-        chain=1, nonce=0, fee=0, value=mining_reward(0),
-        from_address="0" * 34, to_address=WALLET_1["address"],
-        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
-    )
-    genesis = Block(
-        version=1, height=0, miner=WALLET_1["address"],
-        prev_block_hash="0" * 64, timestamp=1_623_168_442,
-        bits=b"\x1f\x00\xff\xff", nonce=0, txns=[coinbase],
-    )
-    genesis.save()
-
-    # Create valid block at height 1
-    coinbase1 = Transaction(
-        chain=1, nonce=0, fee=0, value=mining_reward(1),
-        from_address="0" * 34, to_address=WALLET_1["address"],
-        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
-    )
-    block1 = Block(
-        version=1, height=1, miner=WALLET_1["address"],
-        prev_block_hash=genesis.id, timestamp=1_623_168_500,
-        bits=b"\x1f\x00\xff\xff", nonce=0, txns=[coinbase1],
-    )
-    proof_of_work(block1)
-
-    accepted = node._handle_block(block1.serialize())
+    # Consensus acceptance is covered in the core tests. This test isolates
+    # Node's callback contract from proof-of-work and genesis fixtures.
+    with patch.object(node.block_sync, "handle_block", return_value=True):
+        accepted = node._handle_block(b"accepted block")
     assert accepted is True
     assert len(callback_called) == 1
 

@@ -5,24 +5,41 @@ from luracoin.config import Config
 from luracoin.helpers import sha256d
 from luracoin.network.protocol import (
     HEADER_SIZE,
-    CMD_VERSION, CMD_VERACK, CMD_GETPEERS, CMD_PEERS,
-    CMD_GETBLOCKS, CMD_BLOCK, CMD_TX, CMD_INV, CMD_GETDATA,
-    CMD_PING, CMD_PONG,
-    INV_BLOCK, INV_TX,
+    CMD_VERSION,
+    CMD_VERACK,
+    CMD_GETPEERS,
+    CMD_PEERS,
+    CMD_GETBLOCKS,
+    CMD_BLOCK,
+    CMD_TX,
+    CMD_INV,
+    CMD_GETDATA,
+    CMD_PING,
+    CMD_PONG,
+    INV_BLOCK,
+    INV_TX,
     _checksum,
-    encode_command, decode_command,
-    serialize_message, deserialize_header, validate_message,
-    build_version_payload, parse_version_payload,
-    build_peers_payload, parse_peers_payload,
-    build_getblocks_payload, parse_getblocks_payload,
-    build_inv_payload, parse_inv_payload,
-    build_ping_payload, parse_ping_payload,
+    encode_command,
+    decode_command,
+    serialize_message,
+    deserialize_header,
+    validate_message,
+    build_version_payload,
+    parse_version_payload,
+    build_peers_payload,
+    parse_peers_payload,
+    build_getblocks_payload,
+    parse_getblocks_payload,
+    build_inv_payload,
+    parse_inv_payload,
+    build_ping_payload,
+    parse_ping_payload,
 )
-
 
 # ---------------------------------------------------------------------------
 # Command encoding
 # ---------------------------------------------------------------------------
+
 
 def test_encode_command_pads_to_12_bytes():
     assert encode_command("version") == CMD_VERSION
@@ -47,8 +64,19 @@ def test_decode_command_strips_nulls():
 
 
 def test_encode_decode_roundtrip():
-    for name in ["version", "verack", "getpeers", "peers", "getblocks",
-                  "block", "tx", "inv", "getdata", "ping", "pong"]:
+    for name in [
+        "version",
+        "verack",
+        "getpeers",
+        "peers",
+        "getblocks",
+        "block",
+        "tx",
+        "inv",
+        "getdata",
+        "ping",
+        "pong",
+    ]:
         assert decode_command(encode_command(name)) == name
 
 
@@ -56,10 +84,21 @@ def test_encode_decode_roundtrip():
 # All command constants are 12 bytes
 # ---------------------------------------------------------------------------
 
+
 def test_all_commands_are_12_bytes():
-    cmds = [CMD_VERSION, CMD_VERACK, CMD_GETPEERS, CMD_PEERS,
-            CMD_GETBLOCKS, CMD_BLOCK, CMD_TX, CMD_INV, CMD_GETDATA,
-            CMD_PING, CMD_PONG]
+    cmds = [
+        CMD_VERSION,
+        CMD_VERACK,
+        CMD_GETPEERS,
+        CMD_PEERS,
+        CMD_GETBLOCKS,
+        CMD_BLOCK,
+        CMD_TX,
+        CMD_INV,
+        CMD_GETDATA,
+        CMD_PING,
+        CMD_PONG,
+    ]
     for cmd in cmds:
         assert len(cmd) == 12
 
@@ -67,6 +106,7 @@ def test_all_commands_are_12_bytes():
 # ---------------------------------------------------------------------------
 # Checksum
 # ---------------------------------------------------------------------------
+
 
 def test_checksum_is_4_bytes():
     assert len(_checksum(b"hello")) == 4
@@ -90,6 +130,7 @@ def test_checksum_different_payloads_differ():
 # ---------------------------------------------------------------------------
 # Message serialization / deserialization
 # ---------------------------------------------------------------------------
+
 
 def test_serialize_message_structure():
     msg = serialize_message(CMD_PING, b"\x01\x02\x03\x04")
@@ -148,13 +189,15 @@ def test_validate_message_bad_checksum():
 # Version payload
 # ---------------------------------------------------------------------------
 
+
 def test_version_payload_roundtrip():
     payload = build_version_payload(
         version=1, height=42, timestamp=1_623_168_442, listening_port=9999
     )
-    assert len(payload) == 14
+    assert len(payload) == 18
     parsed = parse_version_payload(payload)
     assert parsed["version"] == 1
+    assert parsed["chain_id"] == Config.CHAIN_ID
     assert parsed["height"] == 42
     assert parsed["timestamp"] == 1_623_168_442
     assert parsed["listening_port"] == 9999
@@ -163,13 +206,21 @@ def test_version_payload_roundtrip():
 def test_version_payload_zero_values():
     payload = build_version_payload(0, 0, 0, 0)
     parsed = parse_version_payload(payload)
-    assert parsed == {"version": 0, "height": 0, "timestamp": 0, "listening_port": 0}
+    assert parsed == {
+        "version": 0,
+        "chain_id": Config.CHAIN_ID,
+        "height": 0,
+        "timestamp": 0,
+        "listening_port": 0,
+    }
 
 
 def test_version_payload_max_values():
     payload = build_version_payload(
-        version=0xFFFFFFFF, height=0xFFFFFFFF,
-        timestamp=0xFFFFFFFF, listening_port=0xFFFF
+        version=0xFFFFFFFF,
+        height=0xFFFFFFFF,
+        timestamp=0xFFFFFFFF,
+        listening_port=0xFFFF,
     )
     parsed = parse_version_payload(payload)
     assert parsed["version"] == 0xFFFFFFFF
@@ -190,6 +241,7 @@ def test_version_full_message_roundtrip():
 # ---------------------------------------------------------------------------
 # Peers payload
 # ---------------------------------------------------------------------------
+
 
 def test_peers_payload_roundtrip():
     peers = [("192.168.1.1", 9999), ("10.0.0.1", 8888)]
@@ -222,6 +274,7 @@ def test_peers_payload_size():
 # Getblocks payload
 # ---------------------------------------------------------------------------
 
+
 def test_getblocks_payload_roundtrip():
     payload = build_getblocks_payload(start_height=500, count=50)
     assert len(payload) == 6
@@ -239,6 +292,7 @@ def test_getblocks_payload_zero():
 # ---------------------------------------------------------------------------
 # Inv payload
 # ---------------------------------------------------------------------------
+
 
 def test_inv_payload_block_roundtrip():
     hash_bytes = b"\xab" * 32
@@ -260,6 +314,7 @@ def test_inv_payload_tx_roundtrip():
 # ---------------------------------------------------------------------------
 # Ping/Pong payload
 # ---------------------------------------------------------------------------
+
 
 def test_ping_payload_roundtrip():
     payload = build_ping_payload(nonce=123456789)
@@ -295,6 +350,7 @@ def test_ping_pong_full_message():
 # ---------------------------------------------------------------------------
 # Inventory type constants
 # ---------------------------------------------------------------------------
+
 
 def test_inv_types_are_distinct():
     assert INV_BLOCK != INV_TX

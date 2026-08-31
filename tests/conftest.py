@@ -1,14 +1,12 @@
 # conftest.py
 import pytest
 import os
-import shutil
 import redis
 
 from typing import Generator
 from luracoin.blocks import Block
 from luracoin.config import Config
 from luracoin.transactions import Transaction
-from luracoin.pow import proof_of_work
 from luracoin.chain import close_databases
 
 
@@ -26,7 +24,7 @@ def init_blockchain():
         unlock_sig=None,
     )
 
-    block1 = Block(
+    Block(
         version=1,
         height=0,
         prev_block_hash="0" * 64,
@@ -39,21 +37,14 @@ def init_blockchain():
 
 @pytest.fixture()
 def blockchain() -> Generator:
-    Config.DATA_DIR = Config.BASE_DIR + "/tests/data/"
-    Config.BLOCKS_DIR = Config.DATA_DIR + "blocks/"
     Config.REDIS_DB = Config.REDIS_DB_TESTS
 
     folder = Config.BLOCKS_DIR
-    if os.path.exists(folder):
-        shutil.rmtree(folder)
-    os.makedirs(folder)
+    os.makedirs(folder, exist_ok=True)
 
     init_blockchain()
 
     yield None
-
-    if os.path.exists(folder):
-        shutil.rmtree(folder)
 
     try:
         redis_client = redis.Redis(
@@ -65,23 +56,38 @@ def blockchain() -> Generator:
 
 
 @pytest.fixture(autouse=True)
-def run_before_and_after_tests(tmpdir):
+def run_before_and_after_tests(tmp_path):
+    """Give every test a process-safe, disposable blockchain directory."""
+
     print("Init tests")
-    if os.path.exists(Config.DATA_TEST_DIR):
-        shutil.rmtree(Config.DATA_TEST_DIR)
+    previous = {
+        "DATA_TEST_PATH": Config.DATA_TEST_PATH,
+        "DATA_TEST_DIR": Config.DATA_TEST_DIR,
+        "BLOCKS_TEST_DIR": Config.BLOCKS_TEST_DIR,
+        "DATA_DIR": Config.DATA_DIR,
+        "BLOCKS_DIR": Config.BLOCKS_DIR,
+        "REDIS_DB": Config.REDIS_DB,
+    }
+    test_data_path = tmp_path / "data"
+    blocks_path = test_data_path / "blocks"
+    test_data_dir = f"{test_data_path}{os.sep}"
+    blocks_dir = f"{blocks_path}{os.sep}"
 
-    os.makedirs(Config.DATA_TEST_DIR)
-    os.makedirs(Config.BLOCKS_TEST_DIR)
-
-    Config.REDIS_DB = Config.REDIS_DB_TESTS
-    Config.DATA_DIR = Config.DATA_TEST_DIR
-    Config.BLOCKS_DIR = Config.BLOCKS_TEST_DIR
-    # Setup: fill with any logic you want
-
-    yield  # this is where the testing happens
-
-    # Teardown
     close_databases()
+    blocks_path.mkdir(parents=True)
+    Config.DATA_TEST_PATH = test_data_path
+    Config.DATA_TEST_DIR = test_data_dir
+    Config.BLOCKS_TEST_DIR = blocks_dir
+    Config.REDIS_DB = Config.REDIS_DB_TESTS
+    Config.DATA_DIR = test_data_dir
+    Config.BLOCKS_DIR = blocks_dir
+
+    try:
+        yield
+    finally:
+        close_databases()
+        for name, value in previous.items():
+            setattr(Config, name, value)
     """
     redis_client = redis.Redis(
         host=Config.REDIS_HOST,

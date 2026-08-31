@@ -7,6 +7,7 @@ from luracoin.wallet import (
     generate_wallet,
     pubkey_to_address,
 )
+from tests.constants import WALLET_1
 
 
 def test_build_p2pkh() -> None:
@@ -17,6 +18,15 @@ def test_generate_random_wallet_input() -> None:
     wallet_input = generate_random_wallet_input()
     assert len(wallet_input) == 64
     assert is_hex(wallet_input) is True
+
+
+def test_generate_wallet_preserves_bip32_root_vector(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "luracoin.wallet.generate_random_wallet_input",
+        lambda: WALLET_1["input"],
+    )
+
+    assert generate_wallet() == WALLET_1
 
 
 @pytest.fixture

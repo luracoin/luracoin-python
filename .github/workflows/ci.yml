@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.12.1"
+      - name: Verify the dependency lock
+        run: uv lock --check
+      - name: Install the locked project
+        run: uv sync --frozen --extra dev --python python
+      - name: Compile
+        run: uv run python -m compileall -q luracoin
+      - name: Check production code style
+        run: |
+          uv run black --check luracoin
+          uv run flake8 luracoin
+      - name: Audit locked runtime dependencies
+        run: |
+          uv export --frozen --no-dev --no-emit-project --output-file requirements-audit.txt
+          uv run pip-audit --requirement requirements-audit.txt
+      - name: Test with coverage
+        run: |
+          uv run coverage run --source=luracoin -m pytest -q
+          uv run coverage report --fail-under=80
+      - name: Build distributions
+        run: |
+          uv build --clear --python python
+          uv run twine check --strict dist/*
+      - name: Smoke-test the wheel
+        run: |
+          python -m venv /tmp/luracoin-wheel-smoke
+          /tmp/luracoin-wheel-smoke/bin/python -m pip install dist/*.whl
+          /tmp/luracoin-wheel-smoke/bin/python -m pip check
+          /tmp/luracoin-wheel-smoke/bin/luracoin --help
+          /tmp/luracoin-wheel-smoke/bin/python -c "import importlib.metadata as m, luracoin; assert m.version('luracoin') == luracoin.__version__"

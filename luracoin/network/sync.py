@@ -3,14 +3,16 @@ Sequential block synchronization.
 """
 
 import binascii
+
+from luracoin.config import Config
 from luracoin.network.protocol import (
-    CMD_GETBLOCKS, CMD_BLOCK, CMD_INV, CMD_GETDATA,
     INV_BLOCK,
-    build_getblocks_payload, build_inv_payload,
+    build_getblocks_payload,
+    build_inv_payload,
 )
 
-
-SYNC_BATCH_SIZE = 50
+# Public compatibility alias; requests themselves read the runtime config.
+SYNC_BATCH_SIZE = Config.SYNC_BATCH_SIZE
 
 
 class BlockSync:
@@ -32,7 +34,7 @@ class BlockSync:
     def build_getblocks_request(self) -> bytes:
         """Build a GETBLOCKS payload starting from our tip + 1."""
         start = self.chain.tip + 1
-        return build_getblocks_payload(start, SYNC_BATCH_SIZE)
+        return build_getblocks_payload(start, Config.SYNC_BATCH_SIZE)
 
     def handle_block(self, block_data: bytes) -> bool:
         """
@@ -49,10 +51,12 @@ class BlockSync:
         if block.height != expected_height:
             return False
 
-        if not block.validate():
+        try:
+            if not block.validate():
+                return False
+            block.save()
+        except Exception:
             return False
-
-        block.save()
         return True
 
     def build_block_inv(self, block_id_hex: str) -> bytes:
@@ -65,7 +69,6 @@ class BlockSync:
         Check if we need a block advertised via INV.
         We check if we already have it by trying to find it.
         """
-        block_id_hex = inv_hash.hex()
         # Simple check: we don't have an index of block hashes,
         # so we just check if we might need it based on height gap.
         # In practice, a full node would maintain a hash index.

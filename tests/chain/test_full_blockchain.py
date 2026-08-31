@@ -1,80 +1,62 @@
-import binascii
-import json
 from binascii import unhexlify
-from tests.helpers import add_test_transactions
-from luracoin.helpers import bits_to_target
+
 from luracoin.blocks import Block
-from luracoin.transactions import Transaction
-from tests.helpers import add_test_transactions
-from luracoin.config import Config
-from luracoin.pow import proof_of_work
 from luracoin.chain import Chain
-from tests.constants import WALLET_1
+from luracoin.config import Config
+from luracoin.genesis import initialize_chain
+from luracoin.helpers import mining_reward
+from luracoin.transactions import Transaction
+from tests.constants import WALLET_1, WALLET_2
 
 
-def test_full_blockchain():
-    START_TIMESTAMP = 1639159886
+def test_full_blockchain(monkeypatch):
+    monkeypatch.setattr(Block, "is_valid_proof", lambda _block: True)
     chain = Chain()
-    assert chain.tip == 0
+    genesis = initialize_chain()
 
-    block1 = Block(
-        version=1,
-        height=0,
-        prev_block_hash="0" * 64,
-        miner=WALLET_1["address"],
-        timestamp=START_TIMESTAMP,
-        bits=Config.STARTING_DIFFICULTY,
-        nonce=156369,
-        txns=[],
-    )
-    block1.save()
-    # Check chain Height is updated
     assert chain.tip == 0
-    # Check block file number is updated
     assert chain.get_block_file_number(0) == 0
-    # Check that the block file contains one block
     assert len(Block.get_blocks_from_file(0)) == 1
-    # Check that the block retrieved from the files is the same
-    assert Block.get(0).id == block1.id
-    assert Block.get(0).serialize() == block1.serialize()
-    
-    # TODO: Check miner balance
-    # TODO: Check file content
-    # TODO: Check stacking
+    assert Block.get(0).serialize() == genesis.serialize()
 
-    # Give WALLET_1 balance so it can send a transaction
-    chain.set_account(WALLET_1["address"], {"balance": Config.LURASHIS_PER_COIN * 100, "nonce": 0})
-
-    # Transaction to stack 15 Luracoins
-    transaction_1 = Transaction(
-        chain=1,
+    amount = Config.LURASHIS_PER_COIN * 15
+    transaction = Transaction(
+        chain=Config.CHAIN_ID,
         nonce=1,
         fee=0,
-        value=Config.LURASHIS_PER_COIN * 15,
+        value=amount,
         from_address=WALLET_1["address"],
-        to_address=Config.STAKING_ADDRESS,
+        to_address=WALLET_2["address"],
+    ).sign(unhexlify(WALLET_1["private_key"]))
+    assert transaction.validate() is True
+
+    coinbase = Transaction(
+        chain=Config.CHAIN_ID,
+        nonce=1,
+        fee=0,
+        value=mining_reward(1),
+        from_address="0" * 34,
+        to_address=WALLET_1["address"],
+        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
-
-    transaction_1.sign(unhexlify(WALLET_1["private_key"]))
-    assert transaction_1.validate() == True
-
-    block2 = Block(
+    block = Block(
         version=1,
         height=1,
-        prev_block_hash=block1.id,
+        prev_block_hash=genesis.id,
         miner=WALLET_1["address"],
-        timestamp=START_TIMESTAMP + (3*60),  # 3 minutes
-        bits=Config.STARTING_DIFFICULTY,
-        nonce=4358788,
-        txns=[transaction_1],
+        timestamp=genesis.timestamp + Config.BLOCK_TIME,
+        bits=Block.expected_bits(1),
+        nonce=0,
+        txns=[coinbase, transaction],
     )
-    block2.save()
-    # Check chain Height is updated
+    block.save()
+
     assert chain.tip == 1
-    # Check block file number is updated
-    assert chain.get_block_file_number(0) == 0
-    # Check that the block file contains two blocks
+    assert chain.get_block_file_number(1) == 0
     assert len(Block.get_blocks_from_file(0)) == 2
-    # Check that the block retrieved from the files is the same
-    assert Block.get(1).id == block2.id
-    assert Block.get(1).serialize() == block2.serialize()
+    assert Block.get(1).serialize() == block.serialize()
+    assert chain.get_account(WALLET_2["address"])["balance"] == amount
+    assert chain.get_account(WALLET_1["address"])["nonce"] == 1
+    assert chain.get_account(WALLET_1["address"])["balance"] == (
+        Config.COINS_TO_FORGE - amount + mining_reward(1)
+    )

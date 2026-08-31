@@ -1,41 +1,50 @@
 from binascii import unhexlify
+
+import pytest
+
 from luracoin.transactions import Transaction
 from luracoin.config import Config
 from luracoin.chain import Chain, set_value, get_value
 from tests.constants import WALLET_1, WALLET_2, WALLET_3
+from luracoin.exceptions import TransactionNotValid
 
 
 def test_save_coinbase_credits_to_address():
-    """Coinbase transaction adds value to to_address balance."""
+    """A coinbase cannot mint outside an accepted block transition."""
     chain = Chain()
 
     # No account exists yet
     assert chain.get_account(WALLET_1["address"]) is None
 
     tx = Transaction(
-        chain=1, nonce=0, fee=0, value=5_000_000_000,
+        chain=1,
+        nonce=0,
+        fee=0,
+        value=5_000_000_000,
         from_address="0" * 34,
         to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
-    tx.save(block_height=0)
-
-    account = chain.get_account(WALLET_1["address"])
-    assert account is not None
-    assert account["balance"] == 5_000_000_000
+    with pytest.raises(TransactionNotValid, match="Block.save"):
+        tx.save(block_height=0)
+    assert chain.get_account(WALLET_1["address"]) is None
 
 
 def test_save_coinbase_does_not_debit_from_address():
-    """Coinbase from_address is zeros -- no account should be debited."""
+    """Rejected standalone coinbase changes no account."""
     chain = Chain()
 
     tx = Transaction(
-        chain=1, nonce=0, fee=0, value=5_000_000_000,
+        chain=1,
+        nonce=0,
+        fee=0,
+        value=5_000_000_000,
         from_address="0" * 34,
         to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
-    tx.save(block_height=0)
+    with pytest.raises(TransactionNotValid, match="Block.save"):
+        tx.save(block_height=0)
 
     # The zeros address should NOT have an account
     assert chain.get_account("0" * 34) is None
@@ -49,7 +58,10 @@ def test_save_regular_tx_updates_both_balances():
     chain.set_account(WALLET_1["address"], {"balance": 10_000_000, "nonce": 0})
 
     tx = Transaction(
-        chain=1, nonce=1, fee=1_000, value=3_000_000,
+        chain=1,
+        nonce=1,
+        fee=1_000,
+        value=3_000_000,
         from_address=WALLET_1["address"],
         to_address=WALLET_2["address"],
     )
@@ -71,7 +83,10 @@ def test_save_regular_tx_increments_sender_nonce():
     chain.set_account(WALLET_1["address"], {"balance": 10_000_000, "nonce": 0})
 
     tx = Transaction(
-        chain=1, nonce=1, fee=100, value=1_000,
+        chain=1,
+        nonce=1,
+        fee=100,
+        value=1_000,
         from_address=WALLET_1["address"],
         to_address=WALLET_2["address"],
     )
@@ -88,7 +103,10 @@ def test_save_credits_existing_receiver_account():
     chain.set_account(WALLET_2["address"], {"balance": 500_000, "nonce": 0})
 
     tx = Transaction(
-        chain=1, nonce=1, fee=100, value=2_000_000,
+        chain=1,
+        nonce=1,
+        fee=100,
+        value=2_000_000,
         from_address=WALLET_1["address"],
         to_address=WALLET_2["address"],
     )
@@ -104,7 +122,10 @@ def test_save_stores_tx_record_in_chainstate():
     chain.set_account(WALLET_1["address"], {"balance": 10_000_000, "nonce": 0})
 
     tx = Transaction(
-        chain=1, nonce=1, fee=100, value=1_000,
+        chain=1,
+        nonce=1,
+        fee=100,
+        value=1_000,
         from_address=WALLET_1["address"],
         to_address=WALLET_2["address"],
     )

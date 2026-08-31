@@ -28,17 +28,8 @@ def test_is_valid_unlocking_script_catches_assertion_error():
             "public_key": "cd" * 32,
             "address": WALLET_1["address"],
         },
-    ), patch(
-        "luracoin.transactions.ecdsa.VerifyingKey.from_string",
-    ) as mock_vk_cls:
-        mock_vk = MagicMock()
-        mock_vk.to_string.return_value = b"\x03" + b"\x00" * 32
-        mock_vk_cls.return_value = mock_vk
-
+    ):
         with patch(
-            "luracoin.transactions.pubkey_to_address",
-            return_value=WALLET_1["address"],
-        ), patch(
             "luracoin.transactions.verify_signature",
             side_effect=AssertionError("bad sig"),
         ):

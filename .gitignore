@@ -61,3 +61,12 @@ docs/_build/
 artifacts/
 .vscode/
 data/
+
+# Local runtime configuration and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.seed
+rpc.token
+wallet.dat

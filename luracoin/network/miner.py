@@ -12,6 +12,7 @@ import time
 
 from luracoin.blocks import Block
 from luracoin.config import Config
+from luracoin.exceptions import BlockNotValidError
 from luracoin.genesis import initialize_chain
 from luracoin.helpers import mining_reward
 from luracoin.pow import proof_of_work
@@ -32,10 +33,12 @@ class MiningNode:
     - Listens to peers for blocks/transactions continuously
     """
 
-    def __init__(self, address: str, port: int = None, seed_nodes: list = None):
+    def __init__(
+        self, address: str, port: int = None, seed_nodes: list = None
+    ):
         self.address = address
         self.node = Node(
-            port=port or Config.PORT,
+            port=Config.PORT if port is None else port,
             seed_nodes=seed_nodes,
         )
         self._stop_mining_event = threading.Event()
@@ -47,15 +50,17 @@ class MiningNode:
 
         # Set callback so node notifies us when a peer's block arrives
         self.node.on_new_block = self._on_peer_block
+        self.node.on_sync_needed = self._on_sync_needed
 
         await self.node.start()
         self._running = True
 
-        # Connect to seeds in background
-        asyncio.create_task(self._connect_and_discover())
-
-        # Start mining loop
-        await self._mining_loop()
+        try:
+            # ``start`` intentionally remains a long-running API for the CLI.
+            await self._mining_loop()
+        finally:
+            if self._running:
+                await self.stop()
 
     async def stop(self) -> None:
         self._running = False
@@ -67,20 +72,20 @@ class MiningNode:
         log.info("New block from peer, interrupting mining")
         self._stop_mining_event.set()
 
-    async def _connect_and_discover(self) -> None:
-        """Connect to seed nodes and periodically discover new peers."""
-        await self.node.connect_to_seeds()
+    def _on_sync_needed(self) -> None:
+        """Interrupt stale PoW when a higher peer starts synchronization."""
 
-        while self._running:
-            await asyncio.sleep(30)
-            if self._running:
-                await self.node.connect_to_seeds()
+        log.info("Higher peer discovered, pausing mining until synchronized")
+        self._stop_mining_event.set()
 
     async def _mining_loop(self) -> None:
         """Main mining loop: build block, run PoW, broadcast, repeat."""
         loop = asyncio.get_event_loop()
 
         while self._running:
+            if not self.node.ready:
+                await asyncio.sleep(0.25)
+                continue
             self._stop_mining_event.clear()
 
             # Build the block template
@@ -90,9 +95,7 @@ class MiningNode:
                 continue
 
             # Run PoW in thread pool (non-blocking)
-            nonce = await loop.run_in_executor(
-                None, self._mine_block, block
-            )
+            nonce = await loop.run_in_executor(None, self._mine_block, block)
 
             if nonce == -1:
                 # Mining was interrupted by a peer's block
@@ -100,7 +103,14 @@ class MiningNode:
                 continue
 
             # Block mined successfully
-            block.save()
+            try:
+                block.save()
+            except BlockNotValidError:
+                # A peer may win the height between our final PoW iteration
+                # and persistence. Rebuild from the new tip instead of taking
+                # the long-running miner down.
+                log.info("Discarding stale mined block %s", block.height)
+                continue
             log.info(f"Mined block {block.height} | nonce: {block.nonce}")
             print(f"Mined block {block.height} | nonce: {block.nonce}")
 
@@ -125,8 +135,9 @@ class MiningNode:
         # Add coinbase
         total_fees = sum(txn.fee for txn in block.txns)
         coinbase = Transaction(
-            chain=0,
-            nonce=0,
+            chain=Config.CHAIN_ID,
+            # Height commits each subsidy transaction to a unique txid.
+            nonce=height,
             fee=0,
             value=mining_reward(height) + total_fees,
             from_address="0" * 34,
@@ -137,12 +148,16 @@ class MiningNode:
 
         block.version = 1
         block.prev_block_hash = prev_hash
-        block.timestamp = int(time.time())
-        block.bits = Config.STARTING_DIFFICULTY
+        block.timestamp = max(
+            int(time.time()), (prev_block.timestamp + 1) if prev_block else 0
+        )
+        # Difficulty is consensus-derived; mining must fail closed when the
+        # required historical context is unavailable.
+        block.bits = Block.expected_bits(height)
         block.nonce = 0
 
         return block
 
     def _mine_block(self, block: Block) -> int:
-        """Run PoW (called in thread pool). Returns nonce or -1 if interrupted."""
+        """Run PoW in a worker; return nonce or -1 when interrupted."""
         return proof_of_work(block, stop_event=self._stop_mining_event)

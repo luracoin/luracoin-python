@@ -1,62 +1,43 @@
-import binascii
-import json
-from tests.helpers import add_test_transactions
-from luracoin.helpers import bits_to_target
+from unittest.mock import patch
+
 from luracoin.blocks import Block
-from luracoin.transactions import Transaction
-from tests.helpers import add_test_transactions
-from luracoin.config import Config
-from luracoin.pow import proof_of_work
 from luracoin.chain import Chain
+from luracoin.config import Config
+from luracoin.genesis import initialize_chain
+from luracoin.helpers import mining_reward
+from luracoin.transactions import Transaction
 from tests.constants import WALLET_1
 
 
 def test_block_save():
-    coinbase_transaction_1 = Transaction(
-        chain=1,
+    genesis = initialize_chain()
+    coinbase = Transaction(
+        chain=Config.CHAIN_ID,
         nonce=1,
         fee=0,
-        value=50000,
+        value=mining_reward(1),
         from_address="0" * 34,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
+        to_address=WALLET_1["address"],
         unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
     )
-
-    block1 = Block(
-        version=1,
-        height=0,
-        miner=WALLET_1["address"],
-        prev_block_hash="0" * 64,
-        timestamp=1_623_168_442,
-        bits=b"\x1d\x0f\xff\xff",
-        nonce=12308683,
-        txns=[coinbase_transaction_1],
-    )
-
-    coinbase_transaction_2 = Transaction(
-        chain=1,
-        nonce=2,
-        fee=0,
-        value=50000,
-        from_address="0" * 34,
-        to_address="1H7NtUENrEbwSVm52fHePzBnu4W3bCqimP",
-        unlock_sig=Config.COINBASE_UNLOCK_SIGNATURE,
-    )
-
-    block2 = Block(
+    block = Block(
         version=1,
         height=1,
         miner=WALLET_1["address"],
-        prev_block_hash=block1.id,
-        timestamp=1_623_168_442,
-        bits=b"\x1d\x0f\xff\xff",
-        nonce=12308683,
-        txns=[coinbase_transaction_2],
+        prev_block_hash=genesis.id,
+        timestamp=genesis.timestamp + 1,
+        bits=Block.expected_bits(1),
+        nonce=0,
+        txns=[coinbase],
     )
 
     chain = Chain()
     assert chain.tip == 0
-    block1.save()
-    assert chain.tip == 0
-    block2.save()
+    with patch.object(Block, "is_valid_proof", return_value=True):
+        block.save()
+
     assert chain.tip == 1
+    assert chain.get_block_file_number(1) == 0
+    persisted = Block.get(1)
+    assert persisted is not None
+    assert persisted.serialize() == block.serialize()
